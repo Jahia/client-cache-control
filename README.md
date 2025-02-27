@@ -42,9 +42,10 @@ policies.<policyname>.clientCachePolicy=public
 Policies are applied in the order of their index, and the first one that match the request is applied. 
 
 4 levels of caching are available: 
-- public: the content can be cached by any intermediary cache (CDN, proxy, ...)
-- private: the content can be cached by the client only
-- immutable: the content should not be cached
+- private: the content is not supposed to be cached
+- public: the content can be cached but may need revalidation. Caching delay is predefined and balanced between performance and freshness regarding intermediate caches (CDN, proxy, ...)
+- custom: the content can be cached but may need revalidation. Caching delay is defined by user template caching properties
+- immutable: the content is not supposed to change and can be cached for a long time (1 year)
 
 Default caching duration for those levels are defined in the org.jahia.bundles.cache.client.config.cfg file.
 
