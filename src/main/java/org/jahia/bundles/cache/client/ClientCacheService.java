@@ -48,6 +48,7 @@ public class ClientCacheService implements ManagedService {
     private static final String CC_POLICY_IMMUTABLE_VALUE = "public, max-age=##immutable.maxage.ttl##, s-maxage=##immutable.smaxage.ttl##, stale-while-revalidate=##immutable.stale.ttl##, immutable";
 
     public static final String CC_POLICY_ATTR = "jahiaClientCachePolicy";
+    public static final String CC_ORIGINAL_REQUEST_URI_ATTR = "jahiaOriginalRequestURI";
     public static final String CC_CUSTOM_TTL_ATTR = "jahiaClientCacheCustomTTL";
 
     public static final String CC_POLICY_PUBLIC = "public";
