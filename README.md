@@ -49,6 +49,11 @@ Policies are applied in the order of their index, and the first one that match t
 
 Default caching duration for those levels are defined in the org.jahia.bundles.cache.client.config.cfg file.
 
+### Header override
+
+Due to impossibility to change a response header once some content is written to the response, the ClientCacheFilter can't override a Cache-Control header that is already set by a servlet or a filter.
+The Client Cache Filter aims to preset the Cache-Control Header according to configured policies but if any other servlet/filter override that header after, it will override the preset value. 
+
 ### CDN consideration
 
 CDN (intermediate proxy that cache content to speed up delivery) can be used to cache content and reduce server load.
