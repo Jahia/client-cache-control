@@ -42,8 +42,8 @@ policies.<policyname>.clientCachePolicy=public
 Policies are applied in the order of their index, and the first one that match the request is applied. 
 
 4 levels of caching are available: 
-- private: the content is not supposed to be cached
-- public: the content can be cached but may need revalidation. Caching delay is predefined and balanced between performance and freshness regarding intermediate caches (CDN, proxy, ...)
+- private: the content is not supposed to be cached and should be revalidated each time
+- public: the content can be cached for a small amount of time and may need revalidation. Caching delay is configured and balanced between performance and freshness regarding intermediate caches (CDN, proxy, ...)
 - custom: the content can be cached but may need revalidation. Caching delay is defined by user template caching properties
 - immutable: the content is not supposed to change and can be cached for a long time (1 year)
 
