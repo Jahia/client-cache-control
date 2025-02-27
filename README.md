@@ -51,7 +51,8 @@ Default caching duration for those levels are defined in the org.jahia.bundles.c
 ### CDN consideration
 
 CDN (intermediate proxy that cache content to speed up delivery) can be used to cache content and reduce server load.
-The module 
+The bundle is designed to work with CDN and propose a generic Cache-Control header that common CDN can understand natively without any specific configuration. 
+Thus, any CDN should work more or less out of the box with Jahia.
 
 ### History of changes
 
