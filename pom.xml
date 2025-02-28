@@ -47,9 +47,9 @@
 
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.jahia.bundles</groupId>
-        <artifactId>jahia-bundles</artifactId>
-        <version>8.2.1.0-SNAPSHOT</version>
+        <groupId>org.jahia.server</groupId>
+        <artifactId>jahia-root</artifactId>
+        <version>8.2.2.0-SNAPSHOT</version>
     </parent>
     <name>Jahia Client Cache Bundle</name>
     <artifactId>org.jahia.bundles.clientcache</artifactId>
@@ -59,6 +59,40 @@
         <export-package>org.jahia.bundles.filters.cache.client</export-package>
         <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
     </properties>
+
+    <scm>
+        <connection>scm:git:git@github.com:Jahia/client-cache-control.git</connection>
+        <developerConnection>scm:git:git@github.com:Jahia/client-cache-control.git</developerConnection>
+        <url>https://github.com/Jahia/client-cache-control</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <repositories>
+        <repository>
+            <id>jahia-public</id>
+            <name>Jahia Public Repository</name>
+            <url>https://devtools.jahia.com/nexus/content/groups/public</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>jahia-enterprise</id>
+            <name>Jahia Enterprise Repository</name>
+            <url>https://devtools.jahia.com/nexus/content/groups/enterprise</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>
@@ -81,7 +115,7 @@
         <dependency>
             <groupId>org.jahia.server</groupId>
             <artifactId>jahia-impl</artifactId>
-            <version>8.2.1.0-SNAPSHOT</version>
+            <version>8.2.2.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -98,7 +132,7 @@
         <dependency>
             <groupId>org.jahia.test</groupId>
             <artifactId>core-test-framework</artifactId>
-            <version>8.2.1.0-SNAPSHOT</version>
+            <version>8.2.2.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
