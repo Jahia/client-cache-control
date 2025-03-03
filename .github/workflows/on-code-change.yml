@@ -70,7 +70,7 @@ jobs:
         with:
           module_id: client-cache-control
           testrail_project: Jahia Client Cache Control Bundle
-          tests_manifest: provisioning-manifest-build.yml
+          tests_manifest: provisioning-manifest-snapshot.yml
           jahia_image: jahia/jahia-ee-dev:8-SNAPSHOT
           jahia_license: ${{ secrets.JAHIA_LICENSE_8X_FULL }}
           should_use_build_artifacts: true
