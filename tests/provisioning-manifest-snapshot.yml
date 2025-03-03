@@ -3,7 +3,7 @@
   username: ${env:NEXUS_USERNAME}
   password: ${env:NEXUS_PASSWORD}
 - installBundle:
-    - url: 'mvn:org.jahia.modules/client-cache-control'
-    - url: 'mvn:org.jahia.modules/jahia-client-cache-control-test-module'
+    - url: 'mvn:org.jahia.bundles/org.jahia.bundles.client-cache'
+    - url: 'mvn:org.jahia.modules/client-cache-control-test-template'
   autoStart: true
   uninstallPreviousVersion: true

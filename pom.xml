@@ -52,7 +52,8 @@
         <version>8.2.2.0-SNAPSHOT</version>
     </parent>
     <name>Jahia Client Cache Bundle</name>
-    <artifactId>org.jahia.bundles.clientcache</artifactId>
+    <groupId>org.jahia.bundles</groupId>
+    <artifactId>org.jahia.bundles.client-cache</artifactId>
     <packaging>bundle</packaging>
 
     <properties>

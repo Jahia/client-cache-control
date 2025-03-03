@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <content xmlns:j="http://www.jahia.org/jahia/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0">
    <modules jcr:primaryType="jnt:modules">
-      <jahia-client-cache-control-test-module j:dependencies="default"
-                             j:installedModules="jahia-client-cache-control-test-module"
+      <client-cache-control-test-template j:dependencies="default"
+                             j:installedModules="client-cache-control-test-template"
                              j:modulePriority="0"
                              j:moduleType="templatesSet"
-                             j:title="Cache Control templatesSet"
+                             j:title="Cache Control Template Set"
                              jcr:primaryType="jnt:module">
          <portlets jcr:primaryType="jnt:portletFolder"/>
          <files jcr:primaryType="jnt:folder"/>
@@ -17,12 +17,19 @@
                </themes>
             </files>
             <contents jcr:primaryType="jnt:contentFolder"/>
-            <base j:theme="#/modules/jahia-client-cache-control-test-module/templates/files/themes/default"
-                  j:view="simple"
+            <base j:theme="#/modules/client-cache-control-test-template/templates/files/themes/default"
+                  j:view="client-cache-control-test-template"
                   jcr:mixinTypes="jmix:theme"
                   jcr:primaryType="jnt:template">
                <home jcr:primaryType="jnt:pageTemplate"/>
-               <simple jcr:primaryType="jnt:pageTemplate"/>
+               <simple jcr:primaryType="jnt:pageTemplate"
+                       j:templateName="simple"
+                       j:view="simple">
+                    <j:translation_en jcr:language="en"
+                                        jcr:mixinTypes="mix:title"
+                                        jcr:primaryType="jnt:translation"
+                                        jcr:title="Simple"/>
+               </simple>
                <user-info jcr:primaryType="jnt:pageTemplate"
                           j:templateName="userInfo"
                           j:view="userInfo">
@@ -43,13 +50,13 @@
             </content-template>
          </templates>
          <home j:isHomePage="true"
-               j:templateName="home"
+               j:templateName="simple"
                jcr:primaryType="jnt:page">
             <j:translation_en jcr:language="en"
                               jcr:mixinTypes="mix:title"
                               jcr:primaryType="jnt:translation"
                               jcr:title="Home"/>
          </home>
-      </jahia-client-cache-control-test-module>
+      </client-cache-control-test-template>
    </modules>
 </content>
