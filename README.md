@@ -4,7 +4,7 @@ This bundle manage configuration for Cache-Control header and propose optimisati
 
 ### Overview
 
-![Client Cache Bundle Overview](./ClientCacheBundle.jpg)
+![Client Cache Bundle Overview](./doc/ClientCacheBundle.jpg)
 
 1. The HTTP request is received and intercepted by the ClientCacheFilter
     1. Depending on the configured ClientCacheFilterRule and the request URL some specific Cache-Control header is preset on the response
