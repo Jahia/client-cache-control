@@ -1,8 +1,2 @@
 - addMavenRepository: 'https://store.jahia.com/nexus/content/repositories/jahia-public-app-store@id=JahiaStore'
 - addMavenRepository: 'https://devtools.jahia.com/nexus/content/groups/public/@snapshots@noreleases@id=JahiaSnapshot'
-  username: ${env:NEXUS_USERNAME}
-  password: ${env:NEXUS_PASSWORD}
-- installBundle:
-    - url: 'mvn:org.jahia.qa/client-cache-control-test-template'
-  autoStart: true
-  uninstallPreviousVersion: true
