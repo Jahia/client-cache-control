@@ -53,7 +53,7 @@
     </parent>
     <name>Jahia Client Cache Bundle</name>
     <groupId>org.jahia.bundles</groupId>
-    <artifactId>org.jahia.bundles.client-cache</artifactId>
+    <artifactId>org.jahia.bundles.client-cache-control</artifactId>
     <packaging>bundle</packaging>
 
     <properties>
