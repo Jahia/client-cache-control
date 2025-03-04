@@ -7,14 +7,14 @@ describe.skip('Cache Control header tests', () => {
     const targetSiteKey = 'cacheTestSite';
     before('Create target test site', () => {
         cy.log('Create site ' + targetSiteKey + ' for cache-control tests');
-        createSite(targetSiteKey, {locale: 'en', templateSet: 'qa-simpleTemplatesSet', serverName: 'localhost'});
+        createSite(targetSiteKey, {locale: 'en', templateSet: 'client-cache-control-test-template', serverName: 'localhost'});
         addNode({parentPathOrId: `/sites/${targetSiteKey}/home`,
             primaryNodeType: 'jnt:contentList',
             name: 'pagecontent'
         }).then(() => {
             addNode({
                 parentPathOrId: `/sites/${targetSiteKey}/home/pagecontent`,
-                primaryNodeType: 'qasts:simpleType',
+                primaryNodeType: 'ccc:simpleType',
                 name: 'simple-type',
                 properties: [{name: 'j:view', value: 'displayParamValues'}],
                 mixins: ['jmix:renderable']
@@ -74,7 +74,7 @@ describe.skip('Cache Control header tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/page2/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'private'}],
                     mixins: ['jmix:renderable']
@@ -110,7 +110,7 @@ describe.skip('Cache Control header tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/page3/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'authored'}],
                     mixins: ['jmix:renderable']
@@ -148,7 +148,7 @@ describe.skip('Cache Control header tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/page3/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'authored'}],
                     mixins: ['jmix:renderable']
@@ -187,7 +187,7 @@ describe.skip('Cache Control header tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/page6/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'authored'}],
                     mixins: ['jmix:renderable']
