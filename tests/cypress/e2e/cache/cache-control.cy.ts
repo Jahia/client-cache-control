@@ -18,9 +18,9 @@ describe.skip('Cache Control header tests', () => {
                 name: 'simple-type',
                 properties: [{name: 'j:view', value: 'displayParamValues'}],
                 mixins: ['jmix:renderable']
-            }).then(() => {
-                publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
     });
 
@@ -78,10 +78,10 @@ describe.skip('Cache Control header tests', () => {
                     name: 'article',
                     properties: [{name: 'j:view', value: 'private'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.log('The page should contains Cache-Control header for private content when not logged');
         cy.logout();
@@ -114,10 +114,10 @@ describe.skip('Cache Control header tests', () => {
                     name: 'article',
                     properties: [{name: 'j:view', value: 'authored'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.log('The page should contains Cache-Control header for custom content when not logged');
         cy.logout();
@@ -152,10 +152,10 @@ describe.skip('Cache Control header tests', () => {
                     name: 'article',
                     properties: [{name: 'j:view', value: 'authored'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.log('The page should contains Cache-Control header for custom content when not logged');
         cy.logout();
@@ -191,10 +191,10 @@ describe.skip('Cache Control header tests', () => {
                     name: 'article',
                     properties: [{name: 'j:view', value: 'authored'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.logout();
         cy.request({
