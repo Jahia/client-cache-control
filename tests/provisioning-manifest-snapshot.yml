@@ -3,6 +3,6 @@
   username: ${env:NEXUS_USERNAME}
   password: ${env:NEXUS_PASSWORD}
 - installBundle:
-    - url: 'mvn:org.jahia.modules/client-cache-control-test-template'
+    - url: 'mvn:org.jahia.qa/client-cache-control-test-template'
   autoStart: true
   uninstallPreviousVersion: true

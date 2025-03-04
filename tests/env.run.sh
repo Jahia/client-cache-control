@@ -66,7 +66,7 @@ if [[ $? -eq 1 ]]; then
   exit 1
 fi
 
-#Snapshot exists which means we want to unistall existing clustering probe and install the snapshot
+#Snapshot exists which means we want to unistall existing client-cache-control and install the snapshot
 if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
     echo "Will uninstall existing client-cache-control and replace it with supplied snapshot"
     curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
@@ -81,7 +81,7 @@ if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
     echo "$(date +'%d %B %Y - %k:%M') == Content of the artifacts/ folder"
     ls -lah
     echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Will start submitting files"
-    for file in $(ls -1 client-cache-control-*-SNAPSHOT.jar | sort -n)
+    for file in $(ls -1 org.jahia.bundles.client.client-cache-control-*-SNAPSHOT.jar | sort -n)
     do
       echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Submitting module from: $file =="
       curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"installAndStartBundle":"'"$file"'", "forceUpdate":true}]' --form file=@$file
