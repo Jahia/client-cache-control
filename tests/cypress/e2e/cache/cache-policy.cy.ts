@@ -5,14 +5,14 @@ describe('Render Chain Client Cache Policy tests', () => {
     const targetSiteKey = 'cacheTestSite';
     before('Create target test site', () => {
         cy.log('Create site ' + targetSiteKey + ' for cache-control tests');
-        createSite(targetSiteKey, {locale: 'en', templateSet: 'qa-simpleTemplatesSet', serverName: 'localhost'});
+        createSite(targetSiteKey, {locale: 'en', templateSet: 'client-cache-control-test-template', serverName: 'localhost'});
         addNode({parentPathOrId: `/sites/${targetSiteKey}/home`,
             primaryNodeType: 'jnt:contentList',
             name: 'pagecontent'
         }).then(() => {
             addNode({
                 parentPathOrId: `/sites/${targetSiteKey}/home/pagecontent`,
-                primaryNodeType: 'qasts:simpleType',
+                primaryNodeType: 'ccc:simpleType',
                 name: 'simple-type',
                 properties: [{name: 'j:view', value: 'displayParamValues'}],
                 mixins: ['jmix:renderable']
@@ -98,14 +98,14 @@ describe('Render Chain Client Cache Policy tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/testCase3/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'default'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.log('The page should contains client cache strategy for testCase3');
         cy.request({
@@ -143,14 +143,14 @@ describe('Render Chain Client Cache Policy tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/testCase4/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'private'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.log('The page should contains client cache strategy for testCase4');
         cy.request({
@@ -188,14 +188,14 @@ describe('Render Chain Client Cache Policy tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/testCase5/pagecontent`,
-                    primaryNodeType: 'qasts:time',
+                    primaryNodeType: 'ccc:time',
                     name: 'time',
                     properties: [{name: 'j:view', value: 'default'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.log('The page should contains client cache strategy for testCase5');
         cy.request({
@@ -233,14 +233,14 @@ describe('Render Chain Client Cache Policy tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/testCase6/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'authored'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.log('The page should contains client cache strategy for testCase6');
         cy.request({

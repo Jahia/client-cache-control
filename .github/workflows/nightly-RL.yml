@@ -14,6 +14,6 @@ jobs:
       module_id: client-cache-control
       testrail_project: Jahia Client Cache Control Bundle
       pagerduty_incident_service: client-cache-control-JahiaRL
-      provisioning_manifest: provisioning-manifest-snapshot.yml
+      provisioning_manifest: provisioning-manifest-build.yml
       artifact_prefix: client-cache-control
       module_branch: ${{ github.ref }}

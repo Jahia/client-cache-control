@@ -6,11 +6,12 @@
         <groupId>org.jahia.modules</groupId>
         <version>8.2.1.0-SNAPSHOT</version>
     </parent>
-    <artifactId>jahia-client-cache-control-test-module</artifactId>
-    <name>JAHIA Client Cache Control Test Modules</name>
+    <groupId>org.jahia.qa</groupId>
+    <artifactId>client-cache-control-test-template</artifactId>
+    <name>JAHIA Client Cache Control Test Template</name>
     <version>2.0.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
-    <description>This are the custom modules for internal tests.</description>
+    <description>This are the custom template for internal tests.</description>
     <repositories>
         <repository>
             <releases>

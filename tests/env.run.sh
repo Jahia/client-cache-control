@@ -66,22 +66,22 @@ if [[ $? -eq 1 ]]; then
   exit 1
 fi
 
-#Snapshot exists which means we want to unistall existing clustering probe and install the snapshot
+#Snapshot exists which means we want to unistall existing client-cache-control and install the snapshot
 if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
-    echo "Will uninstall existing clustering-probe and replace it with supplied snapshot"
-    curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.clustering.probe"}]'
+    echo "Will uninstall existing client-cache-control and replace it with supplied snapshot"
+    curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
     #TODO: this is a workaround due to the fact that uninstall of bundle (not jahia module) is not replicated to other nodes see: https://jira.jahia.org/browse/BACKLOG-23361
-    echo "Uninstalling clustering-probe from others nodes if cluster is enabled"
+    echo "Uninstalling client-cache-control from others nodes if cluster is enabled"
     if [[ "${JAHIA_CLUSTER_ENABLED}" == "true" ]]; then
-        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-a:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.clustering.probe"}]'
-        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-b:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.clustering.probe"}]'
+        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-a:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
+        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-b:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
     fi
 
     cd artifacts/
     echo "$(date +'%d %B %Y - %k:%M') == Content of the artifacts/ folder"
     ls -lah
     echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Will start submitting files"
-    for file in $(ls -1 *probe-*-SNAPSHOT.jar | sort -n)
+    for file in $(ls -1 *-SNAPSHOT.jar | sort -n)
     do
       echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Submitting module from: $file =="
       curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"installAndStartBundle":"'"$file"'", "forceUpdate":true}]' --form file=@$file

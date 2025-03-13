@@ -1,4 +1,4 @@
-name: Nightly Test run (Jahia RL)
+name: Nightly Test run (Jahia SN)
 
 on:
   workflow_dispatch:

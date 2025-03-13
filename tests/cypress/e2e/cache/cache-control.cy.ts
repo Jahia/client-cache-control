@@ -3,24 +3,24 @@ import {addSimplePage} from '../../utils/Utils';
 
 // Should be reactivated and completed when PR https://github.com/Jahia/jahia-private/pull/2353 will be merged
 //   See -> https://jira.jahia.org/browse/BACKLOG-23569
-describe.skip('Cache Control header tests', () => {
+describe('Cache Control header tests', () => {
     const targetSiteKey = 'cacheTestSite';
     before('Create target test site', () => {
         cy.log('Create site ' + targetSiteKey + ' for cache-control tests');
-        createSite(targetSiteKey, {locale: 'en', templateSet: 'qa-simpleTemplatesSet', serverName: 'localhost'});
+        createSite(targetSiteKey, {locale: 'en', templateSet: 'client-cache-control-test-template', serverName: 'localhost'});
         addNode({parentPathOrId: `/sites/${targetSiteKey}/home`,
             primaryNodeType: 'jnt:contentList',
             name: 'pagecontent'
         }).then(() => {
             addNode({
                 parentPathOrId: `/sites/${targetSiteKey}/home/pagecontent`,
-                primaryNodeType: 'qasts:simpleType',
+                primaryNodeType: 'ccc:simpleType',
                 name: 'simple-type',
                 properties: [{name: 'j:view', value: 'displayParamValues'}],
                 mixins: ['jmix:renderable']
-            }).then(() => {
-                publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
     });
 
@@ -74,14 +74,14 @@ describe.skip('Cache Control header tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/page2/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'private'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.log('The page should contains Cache-Control header for private content when not logged');
         cy.logout();
@@ -110,14 +110,14 @@ describe.skip('Cache Control header tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/page3/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'authored'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.log('The page should contains Cache-Control header for custom content when not logged');
         cy.logout();
@@ -148,14 +148,14 @@ describe.skip('Cache Control header tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/page3/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'authored'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.log('The page should contains Cache-Control header for custom content when not logged');
         cy.logout();
@@ -187,14 +187,14 @@ describe.skip('Cache Control header tests', () => {
             }).then(() => {
                 addNode({
                     parentPathOrId: `/sites/${targetSiteKey}/home/page6/pagecontent`,
-                    primaryNodeType: 'qasts:article',
+                    primaryNodeType: 'ccc:article',
                     name: 'article',
                     properties: [{name: 'j:view', value: 'authored'}],
                     mixins: ['jmix:renderable']
-                }).then(() => {
-                    publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
                 });
             });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
         });
         cy.logout();
         cy.request({
