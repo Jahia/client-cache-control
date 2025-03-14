@@ -3,7 +3,7 @@ import {addSimplePage} from '../../utils/Utils';
 
 // Should be reactivated and completed when PR https://github.com/Jahia/jahia-private/pull/2353 will be merged
 //   See -> https://jira.jahia.org/browse/BACKLOG-23569
-describe('Cache Control header tests', () => {
+describe.skip('Cache Control header tests', () => {
     const targetSiteKey = 'cacheTestSite';
     before('Create target test site', () => {
         cy.log('Create site ' + targetSiteKey + ' for cache-control tests');
