@@ -54,7 +54,6 @@ public class ClientCacheFilter extends AbstractServletFilter {
     public static final boolean FILTER_MATCH_ALL_URLS = true;
 
     private ClientCacheService service;
-    private String presetCacheControlValue;
 
     @Reference(service = ClientCacheService.class)
     public void setService(ClientCacheService service) {
@@ -79,25 +78,20 @@ public class ClientCacheFilter extends AbstractServletFilter {
                         && rule.getUrlPattern().matcher(hRequest.getRequestURI()).matches()).findFirst();
         if (firstMatchingRule.isPresent()) {
             request.setAttribute(ClientCacheService.CC_POLICY_ATTR, firstMatchingRule.get().getClientCachePolicy());
-            presetCacheControlValue = service.getCacheControlValues().getOrDefault(firstMatchingRule.get().getClientCachePolicy(),
+            String presetCacheControlValue = service.getCacheControlValues().getOrDefault(firstMatchingRule.get().getClientCachePolicy(),
                     service.getCacheControlValues().get(ClientCacheService.CC_POLICY_PRIVATE));
             hResponse.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
             LOGGER.debug("[{}] Predefining client cache control for rule: {}", hRequest.getRequestURI(), firstMatchingRule.get().getName());
         } else {
-            presetCacheControlValue = service.getCacheControlValues().get(ClientCacheService.CC_POLICY_PRIVATE);
-            hResponse.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
+            hResponse.setHeader(HttpHeaders.CACHE_CONTROL, service.getCacheControlValues().get(ClientCacheService.CC_POLICY_PRIVATE));
             LOGGER.debug("[{}] Predefining DEFAULT client cache control", hRequest.getRequestURI());
         }
         chain.doFilter(request, response);
-        if (!presetCacheControlValue.equals(hResponse.getHeader(HttpHeaders.CACHE_CONTROL))) {
-            LOGGER.info("Preset Cache-Control value has been modified by other component, original value was: {}", presetCacheControlValue);
-        }
         LOGGER.debug("{} {}, [{}] Final Cache-Control: {}",  hResponse.getStatus(), hRequest.getMethod(), hRequest.getRequestURI(), hResponse.getHeader(HttpHeaders.CACHE_CONTROL));
     }
 
     @Override public void init(FilterConfig filterConfig) {
     }
-
 
     @Override public void destroy() {
     }

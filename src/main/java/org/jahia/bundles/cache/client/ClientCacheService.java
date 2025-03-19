@@ -23,22 +23,25 @@
  */
 package org.jahia.bundles.cache.client;
 
-import org.osgi.service.cm.ManagedService;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.service.cm.Configuration;
+import org.osgi.service.cm.ConfigurationAdmin;
+import org.osgi.service.component.annotations.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.*;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
  * @author Jerome Blanchard
  */
-@Component(service = {ClientCacheService.class, ManagedService.class}, configurationPid = "org.jahia.bundles.cache.client.config", immediate = true)
-public class ClientCacheService implements ManagedService {
+@Component(service = {ClientCacheService.class}, configurationPid = "org.jahia.bundles.cache.client", immediate = true)
+public class ClientCacheService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheService.class);
 
@@ -59,10 +62,17 @@ public class ClientCacheService implements ManagedService {
     private List<ClientCacheFilterRule> policies = new LinkedList<>();
     private Map<String, String> cacheControlValues = new HashMap<>();
 
+    @Reference
+    private ConfigurationAdmin configAdmin;
+
     @Activate
-    public void activate(Map<String, ?> properties) {
-        LOGGER.debug("Activating Client Cache Service...");
+    @Modified
+    public void activate(Map<String, String> properties, BundleContext context) {
+        LOGGER.info("Activating Client Cache Service...");
         if (properties != null) {
+            if (!properties.containsKey("config.description")) {
+                properties = loadDefaultConfig(context);
+            }
             this.policies = this.parseRules(properties);
             this.policies.sort(ClientCacheFilterRule::compareTo);
             this.cacheControlValues = this.computeCacheControlValues(properties);
@@ -71,16 +81,34 @@ public class ClientCacheService implements ManagedService {
         cacheControlValues.forEach((cck, ccv) -> LOGGER.info("Cache Control Value: [{}] {}", cck, ccv));
     }
 
-    @Override
-    public void updated(Dictionary<String, ?> dictionary) {
-        LOGGER.debug("Updating Client Cache Service...");
-        if (dictionary != null) {
-            this.policies = this.parseRules(Collections.list(dictionary.keys()).stream().collect(
-                    Collectors.toMap(Function.identity(), dictionary::get)));
-            this.policies.sort(ClientCacheFilterRule::compareTo);
+    @Deactivate
+    public void deactivate() {
+        LOGGER.debug("Deactivating Client Cache Service...");
+        this.policies = new LinkedList<>();
+        this.cacheControlValues = new HashMap<>();
+    }
+
+    private Map<String, String> loadDefaultConfig(BundleContext context) {
+        Properties defaultProps = new Properties();
+        try {
+            Bundle bundle = context.getBundle();
+            URL configUrl = bundle.getResource("META-INF/configurations/org.jahia.bundles.cache.client.cfg");
+            if (configUrl != null) {
+                try (var input = configUrl.openStream()) {
+                    defaultProps.load(input);
+                }
+                Configuration config = configAdmin.getConfiguration("org.jahia.bundles.cache.client", null);
+                Dictionary<String, Object> properties = new Hashtable<>();
+                defaultProps.forEach((key, value) -> properties.put((String) key, value));
+                config.updateIfDifferent(properties);
+                LOGGER.info("Loaded default config from META-INF/configurations/");
+            } else {
+                LOGGER.warn("No default config found in META-INF/configurations/");
+            }
+        } catch (IOException e) {
+            LOGGER.error("Error loading default config", e);
         }
-        policies.forEach(policy -> LOGGER.info("Enabled Policy: {}", policy));
-        cacheControlValues.forEach((cck, ccv) -> LOGGER.info("Cache Control Value: [{}] {}", cck, ccv));
+        return defaultProps.entrySet().stream().collect(Collectors.toMap(e -> (String) e.getKey(), e -> (String) e.getValue()));
     }
 
     public List<ClientCacheFilterRule> getPolicies() {
