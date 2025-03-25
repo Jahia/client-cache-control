@@ -73,17 +73,20 @@ public class ClientCacheFilter extends AbstractServletFilter {
         HttpServletResponse hResponse = (HttpServletResponse) response;
         LOGGER.debug("{} {} Entering Cache Control preset filter", hRequest.getMethod(), hRequest.getRequestURI());
         hRequest.setAttribute(ClientCacheService.CC_ORIGINAL_REQUEST_URI_ATTR, hRequest.getRequestURI());
-        Optional<ClientCacheFilterRule> firstMatchingRule = service.getPolicies().stream()
+        // Check if there is a rule that matches the request
+        Optional<ClientCacheFilterRule> firstMatchingRule = service.getRules().stream()
                 .filter(rule -> rule.getMethodsPattern().matcher(hRequest.getMethod()).matches()
                         && rule.getUrlPattern().matcher(hRequest.getRequestURI()).matches()).findFirst();
+        // If a rule matches, preset the cache control header and set the policy attribute
+        // Otherwise, set the default cache control header (PRIVATE)
         if (firstMatchingRule.isPresent()) {
-            request.setAttribute(ClientCacheService.CC_POLICY_ATTR, firstMatchingRule.get().getClientCachePolicy());
-            String presetCacheControlValue = service.getCacheControlValues().getOrDefault(firstMatchingRule.get().getClientCachePolicy(),
-                    service.getCacheControlValues().get(ClientCacheService.CC_POLICY_PRIVATE));
+            request.setAttribute(ClientCacheService.CC_POLICY_ATTR, firstMatchingRule.get().getHeaderTemplateName());
+            String presetCacheControlValue = service.getCacheControlValues().getOrDefault(firstMatchingRule.get().getHeaderTemplateName().getName(),
+                    service.getCacheControlValues().get(ClientCacheHeaderTemplate.PRIVATE.getName()));
             hResponse.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
             LOGGER.debug("[{}] Predefining client cache control for rule: {}", hRequest.getRequestURI(), firstMatchingRule.get().getName());
         } else {
-            hResponse.setHeader(HttpHeaders.CACHE_CONTROL, service.getCacheControlValues().get(ClientCacheService.CC_POLICY_PRIVATE));
+            hResponse.setHeader(HttpHeaders.CACHE_CONTROL, service.getCacheControlValues().get(ClientCacheHeaderTemplate.PRIVATE.getName()));
             LOGGER.debug("[{}] Predefining DEFAULT client cache control", hRequest.getRequestURI());
         }
         chain.doFilter(request, response);

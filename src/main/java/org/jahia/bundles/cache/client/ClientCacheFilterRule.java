@@ -24,7 +24,10 @@
 package org.jahia.bundles.cache.client;
 
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.Dictionary;
 import java.util.regex.Pattern;
 
 /**
@@ -32,13 +35,15 @@ import java.util.regex.Pattern;
  */
 public class ClientCacheFilterRule implements Comparable<ClientCacheFilterRule> {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheFilterRule.class);
+
     private final String key;
     private int index = -1;
     private String name;
     private String description;
     private Pattern methodsPattern;
     private Pattern urlPattern;
-    private String clientCachePolicy;
+    private ClientCacheHeaderTemplate headerTemplate;
 
     public ClientCacheFilterRule(String key) {
         this.key = key;
@@ -76,38 +81,64 @@ public class ClientCacheFilterRule implements Comparable<ClientCacheFilterRule> 
         return methodsPattern;
     }
 
-    public void setMethodsPattern(Pattern methodsPattern) {
-        this.methodsPattern = methodsPattern;
+    public void setMethodsPattern(String methodsPattern) {
+        this.methodsPattern = Pattern.compile(methodsPattern);
     }
 
     public Pattern getUrlPattern() {
         return urlPattern;
     }
 
-    public void setUrlPattern(Pattern urlPattern) {
-        this.urlPattern = urlPattern;
+    public void setUrlPattern(String urlPattern) {
+        this.urlPattern = Pattern.compile(urlPattern);
     }
 
-    public String getClientCachePolicy() {
-        return clientCachePolicy;
+    public ClientCacheHeaderTemplate getHeaderTemplateName() {
+        return headerTemplate;
     }
 
-    public void setClientCachePolicy(String clientCachePolicy) {
-        this.clientCachePolicy = clientCachePolicy;
+    public void setHeaderTemplateName(String headerTemplate) {
+        this.headerTemplate = ClientCacheHeaderTemplate.fromName(headerTemplate);
     }
 
     public boolean isValid() {
-        return index >= 0 && StringUtils.isNotEmpty(key) && StringUtils.isNotEmpty(name) && methodsPattern != null && urlPattern != null && StringUtils.isNotEmpty(clientCachePolicy);
+        return index >= 0 && StringUtils.isNotEmpty(key) && StringUtils.isNotEmpty(name) && methodsPattern != null && urlPattern != null && headerTemplate != null;
     }
 
     @Override public String toString() {
         return "ClientCacheFilterRule{" + "key='" + key + '\'' + ", index=" + index + ", name='" + name + '\'' + ", description='"
-                + description + '\'' + ", methodsPattern=" + methodsPattern + ", urlPattern=" + urlPattern + ", clientCachePolicy='"
-                + clientCachePolicy + '\'' + '}';
+                + description + '\'' + ", methodsPattern=" + methodsPattern + ", urlPattern=" + urlPattern + ", headerTemplateName='"
+                + headerTemplate + '\'' + '}';
     }
 
     @Override
     public int compareTo(ClientCacheFilterRule o) {
         return Integer.compare(this.index, o.index);
+    }
+
+    public static ClientCacheFilterRule build(String pid, Dictionary<String, ?> properties){
+        LOGGER.debug("Building Client Cache Control rule for pid: {}, config size: {}", pid, properties.size());
+        ClientCacheFilterRule config = new ClientCacheFilterRule(pid);
+        String name = (String) properties.get("name");
+        if (StringUtils.isNotEmpty(name)) {
+            config.setName(name);
+        }
+        String description = (String) properties.get("description");
+        if (StringUtils.isNotEmpty(description)) {
+            config.setDescription(description);
+        }
+        String methodsPattern = (String) properties.get("methodsPattern");
+        if (StringUtils.isNotEmpty(methodsPattern)) {
+            config.setMethodsPattern(methodsPattern);
+        }
+        String urlPattern = (String) properties.get("urlPattern");
+        if (StringUtils.isNotEmpty(urlPattern)) {
+            config.setUrlPattern(urlPattern);
+        }
+        String headerTemplate = (String) properties.get("headerTemplate");
+        if (StringUtils.isNotEmpty(headerTemplate)) {
+            config.setHeaderTemplateName(headerTemplate);
+        }
+        return config;
     }
 }

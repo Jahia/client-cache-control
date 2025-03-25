@@ -23,151 +23,104 @@
  */
 package org.jahia.bundles.cache.client;
 
-import org.osgi.framework.Bundle;
-import org.osgi.framework.BundleContext;
-import org.osgi.service.cm.Configuration;
-import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.annotations.*;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.URL;
 import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author Jerome Blanchard
  */
-@Component(service = {ClientCacheService.class}, configurationPid = "org.jahia.bundles.cache.client", immediate = true)
+@Component(service = {ClientCacheService.class}, immediate = true)
+@Designate(ocd = ClientCacheService.Config.class)
 public class ClientCacheService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheService.class);
 
-    private static final String CC_POLICY_PRIVATE_VALUE = "private, no-cache, no-store, must-revalidate, proxy-revalidate, max-age=0";
-    private static final String CC_POLICY_CUSTOM_VALUE = "public, must-revalidate, max-age=##expires.maxage.ttl##, s-maxage=%%jahiaClientCacheCustomTTL%%, stale-while-revalidate=##expires.stale.ttl##";
-    private static final String CC_POLICY_PUBLIC_VALUE = "public, must-revalidate, max-age=##public.maxage.ttl##, s-maxage=##public.smaxage.ttl##, stale-while-revalidate=##public.stale.ttl##";
-    private static final String CC_POLICY_IMMUTABLE_VALUE = "public, max-age=##immutable.maxage.ttl##, s-maxage=##immutable.smaxage.ttl##, stale-while-revalidate=##immutable.stale.ttl##, immutable";
+    @ObjectClassDefinition(name = "%config.name", description = "%config.description", localization = "OSGI-INF/l10n/clientCache")
+    public @interface Config {
+
+        @AttributeDefinition(name = "%ttl.intermediates.name", defaultValue = "300", description = "%ttl.intermediates.description")
+        String intermediatesTtl() default "300";
+
+        @AttributeDefinition(name = "%ttl.immutable.name", defaultValue = "2678400", description = "%ttl.immutable.description")
+        String immutableTtl() default "2678400";
+
+        @AttributeDefinition(name = "%cacheHeaderTemplate.private.name", description = "%cacheHeaderTemplate.private.description")
+        String privateCacheHeaderTemplate() default "private, no-cache, no-store, must-revalidate, proxy-revalidate, max-age=0";
+
+        @AttributeDefinition(name = "%cacheHeaderTemplate.custom.name", description = "%cacheHeaderTemplate.custom.description")
+        String customCacheHeaderTemplate() default "public, must-revalidate, max-age=1, s-maxage=%%jahiaClientCacheCustomTTL%%, stale-while-revalidate=15";
+
+        @AttributeDefinition(name = "%cacheHeaderTemplate.public.name", description = "%cacheHeaderTemplate.public.description")
+        String publicCacheHeaderTemplate() default "public, must-revalidate, max-age=1, s-maxage=##intermediates.ttl##, stale-while-revalidate=15";
+
+        @AttributeDefinition(name = "%cacheHeaderTemplate.immutable.name", description = "%cacheHeaderTemplate.immutable.description")
+        String immutableCacheHeaderTemplate() default "public, max-age=##immutable.ttl##, s-maxage=##immutable.ttl##, stale-while-revalidate=15, immutable";
+
+    }
 
     public static final String CC_POLICY_ATTR = "jahiaClientCachePolicy";
     public static final String CC_ORIGINAL_REQUEST_URI_ATTR = "jahiaOriginalRequestURI";
     public static final String CC_CUSTOM_TTL_ATTR = "jahiaClientCacheCustomTTL";
 
-    public static final String CC_POLICY_PUBLIC = "public";
-    public static final String CC_POLICY_PRIVATE = "private";
-    public static final String CC_POLICY_CUSTOM = "custom";
-    public static final String CC_POLICY_IMMUTABLE = "immutable";
-
-    private List<ClientCacheFilterRule> policies = new LinkedList<>();
+    private List<ClientCacheFilterRule> rules = new LinkedList<>();
     private Map<String, String> cacheControlValues = new HashMap<>();
-
-    @Reference
-    private ConfigurationAdmin configAdmin;
 
     @Activate
     @Modified
-    public void activate(Map<String, String> properties, BundleContext context) {
+    public void activate(Config config) {
         LOGGER.info("Activating Client Cache Service...");
-        if (properties != null) {
-            if (!properties.containsKey("config.description")) {
-                properties = loadDefaultConfig(context);
-            }
-            this.policies = this.parseRules(properties);
-            this.policies.sort(ClientCacheFilterRule::compareTo);
-            this.cacheControlValues = this.computeCacheControlValues(properties);
-        }
-        policies.forEach(policy -> LOGGER.info("Enabled Policy: {}", policy));
+        this.cacheControlValues = this.computeCacheControlValues(config);
         cacheControlValues.forEach((cck, ccv) -> LOGGER.info("Cache Control Value: [{}] {}", cck, ccv));
     }
 
     @Deactivate
     public void deactivate() {
         LOGGER.debug("Deactivating Client Cache Service...");
-        this.policies = new LinkedList<>();
+        this.rules = new LinkedList<>();
         this.cacheControlValues = new HashMap<>();
     }
 
-    private Map<String, String> loadDefaultConfig(BundleContext context) {
-        Properties defaultProps = new Properties();
-        try {
-            Bundle bundle = context.getBundle();
-            URL configUrl = bundle.getResource("META-INF/configurations/org.jahia.bundles.cache.client.cfg");
-            if (configUrl != null) {
-                try (var input = configUrl.openStream()) {
-                    defaultProps.load(input);
-                }
-                Configuration config = configAdmin.getConfiguration("org.jahia.bundles.cache.client", null);
-                Dictionary<String, Object> properties = new Hashtable<>();
-                defaultProps.forEach((key, value) -> properties.put((String) key, value));
-                config.updateIfDifferent(properties);
-                LOGGER.info("Loaded default config from META-INF/configurations/");
-            } else {
-                LOGGER.warn("No default config found in META-INF/configurations/");
-            }
-        } catch (IOException e) {
-            LOGGER.error("Error loading default config", e);
-        }
-        return defaultProps.entrySet().stream().collect(Collectors.toMap(e -> (String) e.getKey(), e -> (String) e.getValue()));
+    @Reference(service = ClientCacheFilterRuleFactory.class, policy = ReferencePolicy.DYNAMIC, bind = "setRules", unbind = "clearRules")
+    public void setRules(ClientCacheFilterRuleFactory factory) {
+        LOGGER.debug("Setting rules from factory");
+        this.rules = new LinkedList<>();
+        this.rules.addAll(factory.getRules());
+        this.rules.sort(ClientCacheFilterRule::compareTo);
+        rules.forEach(policy -> LOGGER.info("Enabled Rules: {}", policy));
     }
 
-    public List<ClientCacheFilterRule> getPolicies() {
-        return policies;
+    public void clearRules(ClientCacheFilterRuleFactory factory) {
+        LOGGER.debug("Clearing rules");
+        this.rules = new ArrayList<>();
+    }
+
+    public List<ClientCacheFilterRule> getRules() {
+        return rules;
     }
 
     public Map<String, String> getCacheControlValues() {
         return cacheControlValues;
     }
 
-    private List<ClientCacheFilterRule> parseRules(Map<String, ?> properties) {
-        Map<String, ClientCacheFilterRule> rules = new HashMap<>();
-        properties.keySet().stream().map(o -> o.split("\\.")).filter(e -> e.length == 3 && e[0].equals("policies"))
-                .forEach(e -> {
-                    String key = e[1];
-                    if (!rules.containsKey(key)) {
-                        rules.put(key, new ClientCacheFilterRule(key));
-                    }
-                    switch (e[2]) {
-                        case "name":
-                            rules.get(key).setName((String) properties.get("policies." + key + ".name"));
-                            break;
-                        case "index":
-                            rules.get(key).setIndex(Integer.parseInt((String) properties.get("policies." + key + ".index")));
-                            break;
-                        case "description":
-                            rules.get(key).setDescription((String) properties.get("policies." + key + ".description"));
-                            break;
-                        case "methodsPattern":
-                            rules.get(key).setMethodsPattern(Pattern.compile((String) properties.get("policies." + key + ".methodsPattern")));
-                            break;
-                        case "urlPattern":
-                            rules.get(key).setUrlPattern(Pattern.compile((String) properties.get("policies." + key + ".urlPattern")));
-                            break;
-                        case "clientCachePolicy":
-                            rules.get(key).setClientCachePolicy((String) properties.get("policies." + key + ".clientCachePolicy"));
-                            break;
-                    }
-                });
-        if (rules.values().stream().anyMatch(rule -> !rule.isValid())) {
-            LOGGER.warn("Some rules are invalid, they will be ignored.");
-        }
-        return rules.values().stream().filter(ClientCacheFilterRule::isValid).collect(Collectors.toList());
-    }
-
-    private Map<String, String> computeCacheControlValues(Map<String, ?> properties) {
+    private Map<String, String> computeCacheControlValues(Config config) {
         Map<String, String> values = new HashMap<>();
-        values.put(CC_POLICY_PRIVATE, CC_POLICY_PRIVATE_VALUE);
-        values.put(CC_POLICY_PUBLIC, configureCacheControlValue(CC_POLICY_PUBLIC_VALUE, properties));
-        values.put(CC_POLICY_CUSTOM, configureCacheControlValue(CC_POLICY_CUSTOM_VALUE, properties));
-        values.put(CC_POLICY_IMMUTABLE, configureCacheControlValue(CC_POLICY_IMMUTABLE_VALUE, properties));
+        values.put(ClientCacheHeaderTemplate.PRIVATE.getName(), config.privateCacheHeaderTemplate());
+        values.put(ClientCacheHeaderTemplate.PUBLIC.getName(), configureCacheControlValue(config.publicCacheHeaderTemplate(), config));
+        values.put(ClientCacheHeaderTemplate.CUSTOM.getName(), configureCacheControlValue(config.customCacheHeaderTemplate(), config));
+        values.put(ClientCacheHeaderTemplate.IMMUTABLE.getName(), configureCacheControlValue(config.immutableCacheHeaderTemplate(), config));
         return values;
     }
 
-    private String configureCacheControlValue(String value, Map<String, ?> properties) {
+    private String configureCacheControlValue(String value, Config config) {
         String configuredValue = value;
-        for (String key:  properties.keySet()) {
-            configuredValue = configuredValue.replace("##" + key + "##", properties.get(key).toString());
-        }
+        configuredValue = configuredValue.replace("##intermediates.ttl##", config.intermediatesTtl());
+        configuredValue = configuredValue.replace("##immutable.ttl##", config.immutableTtl());
         return configuredValue;
     }
 
