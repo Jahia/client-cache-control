@@ -52,6 +52,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
     <name>Jahia Client Cache Control OSGI Feature</name>
+    <groupId>org.jahia.features</groupId>
     <artifactId>client-cache-control</artifactId>
     <packaging>kar</packaging>
 

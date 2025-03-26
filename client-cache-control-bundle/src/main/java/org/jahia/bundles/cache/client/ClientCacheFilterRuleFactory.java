@@ -42,7 +42,7 @@ public class ClientCacheFilterRuleFactory implements ManagedServiceFactory {
     private final List<ClientCacheFilterRule> rules = new LinkedList<>();
 
     public ClientCacheFilterRuleFactory() {
-        LOGGER.info("Creating Client Cache Control Rules Factory");
+        LOGGER.debug("Creating Client Cache Control Rules Factory");
     }
 
     @Override
@@ -52,11 +52,12 @@ public class ClientCacheFilterRuleFactory implements ManagedServiceFactory {
 
     @Override
     public void updated(String pid, Dictionary<String, ?> properties) throws ConfigurationException {
-        LOGGER.info("Updating Client Cache Control rule for pid: {}, config size: {}", pid, properties.size());
+        LOGGER.info("Updating rule with key: {}, config size: {}", pid, properties.size());
         ClientCacheFilterRule rule = ClientCacheFilterRule.build(pid, properties);
         if (!rule.isValid()) {
-            LOGGER.error("Invalid Client Cache Control rule {}, for pid: {}", rule, pid);
+            LOGGER.error("Invalid rule {}, for key: {}", rule, pid);
         } else {
+            this.rules.removeIf(r -> r.getKey().equals(pid));
             this.rules.add(rule);
             this.sortRules();
         }
@@ -65,13 +66,14 @@ public class ClientCacheFilterRuleFactory implements ManagedServiceFactory {
     @Override
     public void deleted(String pid) {
         LOGGER.info("Deleting Client Cache Control rule for pid: {}", pid);
-        this.rules.removeIf(rule -> rule.getKey().equals(pid));
+        this.rules.removeIf(r -> r.getKey().equals(pid));
         this.sortRules();
     }
 
     private void sortRules() {
         this.rules.sort(ClientCacheFilterRule::compareTo);
-        this.rules.forEach(policy -> LOGGER.info("Enabled Rules: {}", policy));
+        LOGGER.info("Current active rules (sorted):");
+        this.rules.forEach(rule -> LOGGER.info("{}", rule));
     }
 
     public List<ClientCacheFilterRule> getRules() {
