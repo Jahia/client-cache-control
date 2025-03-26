@@ -41,9 +41,7 @@ public class ClientCacheService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheService.class);
 
-    @ObjectClassDefinition(
-            name = "Client Cache Templates Configuration",
-            description = "Configuration of the client cache templates")
+    @ObjectClassDefinition(description = "Configuration of the client cache control")
     public @interface Config {
 
         @AttributeDefinition(name = "Intermediates Cache Duration",
