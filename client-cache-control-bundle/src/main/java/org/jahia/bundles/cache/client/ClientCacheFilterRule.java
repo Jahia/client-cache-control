@@ -93,12 +93,12 @@ public class ClientCacheFilterRule implements Comparable<ClientCacheFilterRule> 
         this.urlPattern = Pattern.compile(urlPattern);
     }
 
-    public ClientCacheHeaderTemplate getHeaderTemplateName() {
+    public ClientCacheHeaderTemplate getHeaderTemplate() {
         return headerTemplate;
     }
 
-    public void setHeaderTemplateName(String headerTemplate) {
-        this.headerTemplate = ClientCacheHeaderTemplate.fromName(headerTemplate);
+    public void setHeaderTemplate(String headerTemplate) {
+        this.headerTemplate = ClientCacheHeaderTemplate.forName(headerTemplate);
     }
 
     public boolean isValid() {
@@ -107,7 +107,7 @@ public class ClientCacheFilterRule implements Comparable<ClientCacheFilterRule> 
 
     @Override public String toString() {
         return "ClientCacheFilterRule{" + "key='" + key + '\'' + ", index=" + index + ", name='" + name + '\'' + ", description='"
-                + description + '\'' + ", methodsPattern=" + methodsPattern + ", urlPattern=" + urlPattern + ", headerTemplateName='"
+                + description + '\'' + ", methodsPattern=" + methodsPattern + ", urlPattern=" + urlPattern + ", headerTemplate='"
                 + headerTemplate + '\'' + '}';
     }
 
@@ -119,6 +119,10 @@ public class ClientCacheFilterRule implements Comparable<ClientCacheFilterRule> 
     public static ClientCacheFilterRule build(String pid, Dictionary<String, ?> properties){
         LOGGER.debug("Building Client Cache Control rule for pid: {}, config size: {}", pid, properties.size());
         ClientCacheFilterRule config = new ClientCacheFilterRule(pid);
+        String index = (String) properties.get("index");
+        if (StringUtils.isNotEmpty(index)) {
+            config.setIndex(Integer.parseInt(index));
+        }
         String name = (String) properties.get("name");
         if (StringUtils.isNotEmpty(name)) {
             config.setName(name);
@@ -135,9 +139,9 @@ public class ClientCacheFilterRule implements Comparable<ClientCacheFilterRule> 
         if (StringUtils.isNotEmpty(urlPattern)) {
             config.setUrlPattern(urlPattern);
         }
-        String headerTemplate = (String) properties.get("headerTemplate");
-        if (StringUtils.isNotEmpty(headerTemplate)) {
-            config.setHeaderTemplateName(headerTemplate);
+        String headerTemplateName = (String) properties.get("headerTemplate");
+        if (StringUtils.isNotEmpty(headerTemplateName)) {
+            config.setHeaderTemplate(headerTemplateName);
         }
         return config;
     }

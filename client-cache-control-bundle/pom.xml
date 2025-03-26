@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    ==========================================================================================
+    =                   JAHIA'S DUAL LICENSING - IMPORTANT INFORMATION                       =
+    ==========================================================================================
+
+                                    http://www.jahia.com
+
+        Copyright (C) 2002-2025 Jahia Solutions Group SA. All rights reserved.
+
+        THIS FILE IS AVAILABLE UNDER TWO DIFFERENT LICENSES:
+        1/Apache2 OR 2/JSEL
+
+        1/ Apache2
+        ==================================================================================
+
+        Copyright (C) 2002-2025 Jahia Solutions Group SA. All rights reserved.
+
+        Licensed under the Apache License, Version 2.0 (the "License");
+        you may not use this file except in compliance with the License.
+        You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+        Unless required by applicable law or agreed to in writing, software
+        distributed under the License is distributed on an "AS IS" BASIS,
+        WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+        See the License for the specific language governing permissions and
+        limitations under the License.
+
+
+        2/ JSEL - Commercial and Supported Versions of the program
+        ===================================================================================
+
+        IF YOU DECIDE TO CHOOSE THE JSEL LICENSE, YOU MUST COMPLY WITH THE FOLLOWING TERMS:
+
+        Alternatively, commercial and supported versions of the program - also known as
+        Enterprise Distributions - must be used in accordance with the terms and conditions
+        contained in a separate written agreement between you and Jahia Solutions Group SA.
+
+        If you are unsure which license is appropriate for your use,
+        please contact the sales department at sales@jahia.com.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.jahia.bundles</groupId>
+        <artifactId>client-cache-control-root</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <name>Jahia Client Cache Bundle</name>
+    <artifactId>org.jahia.bundles.client-cache-control</artifactId>
+    <packaging>bundle</packaging>
+
+    <properties>
+        <export-package>org.jahia.bundles.filters.cache.client</export-package>
+        <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <_dsannotations>*</_dsannotations>
+                        <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+                        <Bundle-Version>${project.version}</Bundle-Version>
+                    </instructions>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-artifacts</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attach-artifact</goal>
+                        </goals>
+                        <configuration>
+                            <artifacts>
+                                <artifact>
+                                    <file>src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.rule-immutable.cfg</file>
+                                    <type>cfg</type>
+                                    <classifier>rule-immutable-cfg</classifier>
+                                </artifact>
+                                <artifact>
+                                    <file>src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.rule-private.cfg</file>
+                                    <type>cfg</type>
+                                    <classifier>rule-private-cfg</classifier>
+                                </artifact>
+                                <artifact>
+                                    <file>src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.rule-public.cfg</file>
+                                    <type>cfg</type>
+                                    <classifier>rule-public-cfg</classifier>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.cyclonedx</groupId>
+                <artifactId>cyclonedx-maven-plugin</artifactId>
+                <version>2.7.9</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>makeAggregateBom</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <projectType>library</projectType>
+                    <schemaVersion>1.4</schemaVersion>
+                    <includeBomSerialNumber>true</includeBomSerialNumber>
+                    <includeCompileScope>true</includeCompileScope>
+                    <includeProvidedScope>false</includeProvidedScope>
+                    <includeRuntimeScope>true</includeRuntimeScope>
+                    <includeSystemScope>false</includeSystemScope>
+                    <includeTestScope>false</includeTestScope>
+                    <includeLicenseText>false</includeLicenseText>
+                    <outputReactorProjects>true</outputReactorProjects>
+                    <outputFormat>json</outputFormat>
+                    <outputName>java-bom.cdx</outputName>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jahia.server</groupId>
+            <artifactId>jahia-impl</artifactId>
+            <version>${jahia.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>osgi.core</artifactId>
+            <version>${osgi.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jahia.test</groupId>
+            <artifactId>core-test-framework</artifactId>
+            <version>${jahia.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

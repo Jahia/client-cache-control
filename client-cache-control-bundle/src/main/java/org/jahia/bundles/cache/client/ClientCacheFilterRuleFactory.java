@@ -29,10 +29,7 @@ import org.osgi.service.component.annotations.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Dictionary;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Jerome Blanchard
@@ -42,10 +39,10 @@ public class ClientCacheFilterRuleFactory implements ManagedServiceFactory {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheFilterRuleFactory.class);
 
-    private final Map<String, ClientCacheFilterRule> rules = new HashMap<>();
+    private final List<ClientCacheFilterRule> rules = new LinkedList<>();
 
     public ClientCacheFilterRuleFactory() {
-        LOGGER.debug("Creating Client Cache Control Rules Factory");
+        LOGGER.info("Creating Client Cache Control Rules Factory");
     }
 
     @Override
@@ -58,20 +55,27 @@ public class ClientCacheFilterRuleFactory implements ManagedServiceFactory {
         LOGGER.info("Updating Client Cache Control rule for pid: {}, config size: {}", pid, properties.size());
         ClientCacheFilterRule rule = ClientCacheFilterRule.build(pid, properties);
         if (!rule.isValid()) {
-            LOGGER.error("Invalid Client Cache Control rule for pid: {}", pid);
+            LOGGER.error("Invalid Client Cache Control rule {}, for pid: {}", rule, pid);
         } else {
-            rules.put(pid, rule);
+            this.rules.add(rule);
+            this.sortRules();
         }
     }
 
     @Override
     public void deleted(String pid) {
         LOGGER.info("Deleting Client Cache Control rule for pid: {}", pid);
-        rules.remove(pid);
+        this.rules.removeIf(rule -> rule.getKey().equals(pid));
+        this.sortRules();
     }
 
-    public Collection<ClientCacheFilterRule> getRules() {
-        return rules.values();
+    private void sortRules() {
+        this.rules.sort(ClientCacheFilterRule::compareTo);
+        this.rules.forEach(policy -> LOGGER.info("Enabled Rules: {}", policy));
+    }
+
+    public List<ClientCacheFilterRule> getRules() {
+        return this.rules;
     }
 
 }

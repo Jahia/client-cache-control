@@ -47,67 +47,32 @@
 
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.jahia.server</groupId>
-        <artifactId>jahia-root</artifactId>
-        <version>8.2.1.0</version>
+        <groupId>org.jahia.bundles</groupId>
+        <artifactId>client-cache-control-root</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.jahia.bundles</groupId>
-    <artifactId>client-cache-control-root</artifactId>
-    <name>Jahia Client Cache Control</name>
-    <version>1.0.0-SNAPSHOT</version>
-    <packaging>pom</packaging>
+    <name>Jahia Client Cache Control OSGI Feature</name>
+    <artifactId>client-cache-control</artifactId>
+    <packaging>kar</packaging>
 
-    <properties>
-        <jahia.version>8.2.1.0</jahia.version>
-    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.jahia.bundles</groupId>
+            <artifactId>org.jahia.bundles.client-cache-control</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
-    <scm>
-        <connection>scm:git:git@github.com:Jahia/client-cache-control.git</connection>
-        <developerConnection>scm:git:git@github.com:Jahia/client-cache-control.git</developerConnection>
-        <url>https://github.com/Jahia/client-cache-control</url>
-        <tag>HEAD</tag>
-    </scm>
-
-    <repositories>
-        <repository>
-            <id>jahia-public</id>
-            <name>Jahia Public Repository</name>
-            <url>https://devtools.jahia.com/nexus/content/groups/public</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>jahia-enterprise</id>
-            <name>Jahia Enterprise Repository</name>
-            <url>https://devtools.jahia.com/nexus/content/groups/enterprise</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-
-    <distributionManagement>
-        <repository>
-            <id>jahia-enterprise-customers-releases</id>
-            <url>https://devtools.jahia.com/nexus/content/repositories/jahia-enterprise-customers-releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>jahia-enterprise-customers-snapshots</id>
-            <url>https://devtools.jahia.com/nexus/content/repositories/jahia-enterprise-customers-snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-
-    <modules>
-        <module>client-cache-control-bundle</module>
-        <module>client-cache-control-feature</module>
-    </modules>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.karaf.tooling</groupId>
+                <artifactId>karaf-maven-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <includeTransitiveDependency>false</includeTransitiveDependency>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

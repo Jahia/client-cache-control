@@ -72,7 +72,7 @@ public class ClientCacheRenderFilter extends AbstractFilter {
     @Override
     public String execute(String previousOut, RenderContext renderContext, Resource resource, RenderChain chain) throws Exception {
         LOGGER.debug("Client Cache Policy Level set to {} with a TTL of {}", renderContext.getClientCachePolicy().getLevel().getValue(), renderContext.getClientCachePolicy().getTtl());
-        String cacheControl = service.getCacheControlValues().get(renderContext.getClientCachePolicy().getLevel().getValue());
+        String cacheControl = service.getCacheControlHeaderTemplates().get(renderContext.getClientCachePolicy().getLevel().getValue());
         if (renderContext.getClientCachePolicy().getTtl() > 0) {
             LOGGER.debug("Custom TTL detected, replacing custom TTL placeholder in cache control header with value {}", renderContext.getClientCachePolicy().getTtl());
             cacheControl = cacheControl.replaceAll("%%" + ClientCacheService.CC_CUSTOM_TTL_ATTR + "%%",

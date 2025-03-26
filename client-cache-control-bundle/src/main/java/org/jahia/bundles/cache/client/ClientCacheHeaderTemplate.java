@@ -43,7 +43,7 @@ public enum ClientCacheHeaderTemplate {
         return name;
     }
 
-    public static ClientCacheHeaderTemplate fromName(String name) {
+    public static ClientCacheHeaderTemplate forName(String name) {
         for (ClientCacheHeaderTemplate template : values()) {
             if (template.getName().equals(name)) {
                 return template;

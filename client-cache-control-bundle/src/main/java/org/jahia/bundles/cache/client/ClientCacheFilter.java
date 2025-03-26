@@ -34,8 +34,9 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletResponseWrapper;
 import java.io.IOException;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Rules to apply preset Client Cache Control Policies based on URL patterns.
@@ -70,7 +71,7 @@ public class ClientCacheFilter extends AbstractServletFilter {
 
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest hRequest = (HttpServletRequest) request;
-        HttpServletResponse hResponse = (HttpServletResponse) response;
+        ClientCacheHeaderResponseWrapper hResponse = new ClientCacheHeaderResponseWrapper((HttpServletResponse) response);
         LOGGER.debug("{} {} Entering Cache Control preset filter", hRequest.getMethod(), hRequest.getRequestURI());
         hRequest.setAttribute(ClientCacheService.CC_ORIGINAL_REQUEST_URI_ATTR, hRequest.getRequestURI());
         // Check if there is a rule that matches the request
@@ -79,18 +80,26 @@ public class ClientCacheFilter extends AbstractServletFilter {
                         && rule.getUrlPattern().matcher(hRequest.getRequestURI()).matches()).findFirst();
         // If a rule matches, preset the cache control header and set the policy attribute
         // Otherwise, set the default cache control header (PRIVATE)
+        String presetCacheControlValue = "";
         if (firstMatchingRule.isPresent()) {
-            request.setAttribute(ClientCacheService.CC_POLICY_ATTR, firstMatchingRule.get().getHeaderTemplateName());
-            String presetCacheControlValue = service.getCacheControlValues().getOrDefault(firstMatchingRule.get().getHeaderTemplateName().getName(),
-                    service.getCacheControlValues().get(ClientCacheHeaderTemplate.PRIVATE.getName()));
+            request.setAttribute(ClientCacheService.CC_POLICY_ATTR, firstMatchingRule.get().getHeaderTemplate());
+            presetCacheControlValue = service.getCacheControlHeaderTemplates().getOrDefault(firstMatchingRule.get().getHeaderTemplate().getName(),
+                    service.getCacheControlHeaderTemplates().get(ClientCacheHeaderTemplate.PRIVATE.getName()));
             hResponse.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
             LOGGER.debug("[{}] Predefining client cache control for rule: {}", hRequest.getRequestURI(), firstMatchingRule.get().getName());
         } else {
-            hResponse.setHeader(HttpHeaders.CACHE_CONTROL, service.getCacheControlValues().get(ClientCacheHeaderTemplate.PRIVATE.getName()));
+            presetCacheControlValue = service.getCacheControlHeaderTemplates().get(ClientCacheHeaderTemplate.PRIVATE.getName());
+            hResponse.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
             LOGGER.debug("[{}] Predefining DEFAULT client cache control", hRequest.getRequestURI());
         }
-        chain.doFilter(request, response);
-        LOGGER.debug("{} {}, [{}] Final Cache-Control: {}",  hResponse.getStatus(), hRequest.getMethod(), hRequest.getRequestURI(), hResponse.getHeader(HttpHeaders.CACHE_CONTROL));
+        chain.doFilter(request, hResponse);
+        if (service.logOverridesCacheControlHeader() && !hResponse.getHeader(HttpHeaders.CACHE_CONTROL).equals(presetCacheControlValue)) {
+            LOGGER.info("[{}] Cache-Control header overridden by other component, current value: {} restored by preset value: {}", hRequest.getRequestURI(), hResponse.getHeader(HttpHeaders.CACHE_CONTROL), presetCacheControlValue);
+        }
+        hResponse.applyHeaders();
+        if (LOGGER.isDebugEnabled()) {
+            hResponse.getHeaderNames().forEach(headerName -> LOGGER.debug("[{}]  Final Header: [{}] Value: [{}]", hRequest.getRequestURI(), headerName, hResponse.getHeader(headerName)));
+        }
     }
 
     @Override public void init(FilterConfig filterConfig) {
@@ -99,4 +108,59 @@ public class ClientCacheFilter extends AbstractServletFilter {
     @Override public void destroy() {
     }
 
+    public static class ClientCacheHeaderResponseWrapper extends HttpServletResponseWrapper {
+
+        private final Map<String, String> overriddenHeaders = new HashMap<>();
+        private final List<String> overriddenHeadersNames = List.of(HttpHeaders.CACHE_CONTROL, HttpHeaders.EXPIRES, HttpHeaders.PRAGMA);
+
+        public ClientCacheHeaderResponseWrapper(HttpServletResponse response) {
+            super(response);
+        }
+
+        @Override
+        public void setHeader(String name, String value) {
+            if (overriddenHeadersNames.contains(name)) {
+                overriddenHeaders.put(name, value);
+            } else {
+                super.setHeader(name, value);
+            }
+        }
+
+        @Override
+        public void addHeader(String name, String value) {
+            if (overriddenHeadersNames.contains(name)) {
+                overriddenHeaders.put(name, value);
+            } else {
+                super.addHeader(name, value);
+            }
+        }
+
+        @Override
+        public String getHeader(String name) {
+            if (overriddenHeadersNames.contains(name)) {
+                return overriddenHeaders.get(name);
+            }
+            return overriddenHeaders.getOrDefault(name, super.getHeader(name));
+        }
+
+        @Override
+        public Collection<String> getHeaderNames() {
+            Set<String> headerNames = new HashSet<>(super.getHeaderNames());
+            overriddenHeadersNames.forEach(headerNames::remove);
+            headerNames.addAll(overriddenHeaders.keySet());
+            return headerNames;
+        }
+
+        @Override
+        public Collection<String> getHeaders(String name) {
+            if (overriddenHeaders.containsKey(name)) {
+                return Collections.singletonList(overriddenHeaders.get(name));
+            }
+            return super.getHeaders(name);
+        }
+
+        public void applyHeaders() {
+            overriddenHeaders.forEach(super::setHeader);
+        }
+    }
 }
