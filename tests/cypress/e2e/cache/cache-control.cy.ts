@@ -3,7 +3,7 @@ import {addSimplePage} from '../../utils/Utils';
 
 // Should be reactivated and completed when PR https://github.com/Jahia/jahia-private/pull/2353 will be merged
 //   See -> https://jira.jahia.org/browse/BACKLOG-23569
-describe.skip('Cache Control header tests', () => {
+describe('Cache Control header tests', () => {
     const targetSiteKey = 'cacheTestSite';
     before('Create target test site', () => {
         cy.log('Create site ' + targetSiteKey + ' for cache-control tests');
@@ -138,8 +138,10 @@ describe.skip('Cache Control header tests', () => {
     });
 
     // Test case 4 : Verify that accessing files (like images) are flagged with a public strategy
+
+
     // Test case 5 : Verify that accessing modules resources content are flagged with a public strategy
-    it('should find cache-control header in module resources test case 4', () => {
+    it('should find cache-control header in module resources test case 5', () => {
         cy.login();
         addSimplePage(`/sites/${targetSiteKey}/home`, 'page3', 'Page test case 3', 'en', 'simple').then(() => {
             addNode({parentPathOrId: `/sites/${targetSiteKey}/home/page3`,

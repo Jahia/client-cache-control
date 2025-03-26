@@ -35,13 +35,15 @@ import java.util.*;
 /**
  * @author Jerome Blanchard
  */
-@Component(service = {ClientCacheService.class}, configurationPid = "org.jahia.bundles.cache.client", property = "service.pid=org.jahia.bundles.cache.client", immediate = true)
+@Component(service = {ClientCacheService.class}, configurationPid = "org.jahia.bundles.cache.client", immediate = true)
 @Designate(ocd = ClientCacheService.Config.class)
 public class ClientCacheService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheService.class);
 
-    @ObjectClassDefinition(description = "Configuration of the client cache control")
+    @ObjectClassDefinition(
+            name = "org.jahia.bundles.cache.client",
+            description = "Configuration of the client cache control")
     public @interface Config {
 
         @AttributeDefinition(name = "Intermediates Cache Duration",
