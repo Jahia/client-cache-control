@@ -57,7 +57,6 @@
 
     <properties>
         <export-package>org.jahia.bundles.filters.cache.client</export-package>
-        <require-capability>osgi.extender;filter:="(osgi.extender=org.jahia.bundles.blueprint.extender.config)"</require-capability>
     </properties>
 
     <build>
@@ -154,12 +153,6 @@
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jahia.test</groupId>
-            <artifactId>core-test-framework</artifactId>
-            <version>${jahia.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
