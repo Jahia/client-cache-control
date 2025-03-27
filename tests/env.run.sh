@@ -67,7 +67,7 @@ if [[ $? -eq 1 ]]; then
 fi
 
 #Snapshot exists which means we want to unistall existing client-cache-control and install the snapshot
-if compgen -G "./client-cache-control-feature/artifacts/*-SNAPSHOT.kar" > /dev/null; then
+if compgen -G "./artifacts/client-cache-control-feature/target/*-SNAPSHOT.kar" > /dev/null; then
     echo "Will uninstall existing client-cache-control feature and replace it with supplied snapshot"
     curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallFeature":"client-cache-control"}]'
     #TODO: this workaround was done because bundles are not uninstalled on all nodes but it needs to be confirmed if feature has the same behavior
@@ -77,11 +77,11 @@ if compgen -G "./client-cache-control-feature/artifacts/*-SNAPSHOT.kar" > /dev/n
         curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-b:8080/modules/api/provisioning --form script='[{"uninstallFeature":"client-cache-control"}]'
     fi
 
-    cd client-cache-control-feature/artifacts/
-    echo "$(date +'%d %B %Y - %k:%M') == Content of the client-cache-control-feature/artifacts/ folder"
+    cd artifacts/client-cache-control-feature/target/
+    echo "$(date +'%d %B %Y - %k:%M') == Content of the artifacts/client-cache-control-feature/target/ folder"
     ls -lah
     echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Will start submitting files"
-    for file in $(ls -1 *-SNAPSHOT.jar | sort -n)
+    for file in $(ls -1 *-SNAPSHOT.kar | sort -n)
     do
       echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Submitting feature from: $file =="
       curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"installAndStartBundle":"'"$file"'", "forceUpdate":true}]' --form file=@$file
