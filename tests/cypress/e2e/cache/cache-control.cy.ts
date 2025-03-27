@@ -138,8 +138,6 @@ describe('Cache Control header tests', () => {
     });
 
     // Test case 4 : Verify that accessing files (like images) are flagged with a public strategy
-
-
     // Test case 5 : Verify that accessing modules resources content are flagged with a public strategy
     it('should find cache-control header in module resources test case 5', () => {
         cy.login();
