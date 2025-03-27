@@ -67,26 +67,26 @@ if [[ $? -eq 1 ]]; then
 fi
 
 #Snapshot exists which means we want to unistall existing client-cache-control and install the snapshot
-if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
-    echo "Will uninstall existing client-cache-control and replace it with supplied snapshot"
-    curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
-    #TODO: this is a workaround due to the fact that uninstall of bundle (not jahia module) is not replicated to other nodes see: https://jira.jahia.org/browse/BACKLOG-23361
+if compgen -G "./client-cache-control-feature/artifacts/*-SNAPSHOT.kar" > /dev/null; then
+    echo "Will uninstall existing client-cache-control feature and replace it with supplied snapshot"
+    curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallFeature":"client-cache-control"}]'
+    #TODO: this workaround was done because bundles are not uninstalled on all nodes but it needs to be confirmed if feature has the same behavior
     echo "Uninstalling client-cache-control from others nodes if cluster is enabled"
     if [[ "${JAHIA_CLUSTER_ENABLED}" == "true" ]]; then
-        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-a:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
-        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-b:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
+        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-a:8080/modules/api/provisioning --form script='[{"uninstallFeature":"client-cache-control"}]'
+        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-b:8080/modules/api/provisioning --form script='[{"uninstallFeature":"client-cache-control"}]'
     fi
 
-    cd artifacts/
-    echo "$(date +'%d %B %Y - %k:%M') == Content of the artifacts/ folder"
+    cd client-cache-control-feature/artifacts/
+    echo "$(date +'%d %B %Y - %k:%M') == Content of the client-cache-control-feature/artifacts/ folder"
     ls -lah
     echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Will start submitting files"
     for file in $(ls -1 *-SNAPSHOT.jar | sort -n)
     do
-      echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Submitting module from: $file =="
+      echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Submitting feature from: $file =="
       curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"installAndStartBundle":"'"$file"'", "forceUpdate":true}]' --form file=@$file
       echo
-      echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Module submitted =="
+      echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Feature submitted =="
     done
 
     cd ..
