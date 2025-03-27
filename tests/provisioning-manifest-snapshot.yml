@@ -1,2 +1,32 @@
 - addMavenRepository: 'https://store.jahia.com/nexus/content/repositories/jahia-public-app-store@id=JahiaStore'
 - addMavenRepository: 'https://devtools.jahia.com/nexus/content/groups/public/@snapshots@noreleases@id=JahiaSnapshot'
+
+- editConfiguration: 'org.jahia.bundles.cache.client.rule'
+  configIdentifier: 'public'
+  properties:
+    index: '1'
+    name: 'Public caching during one second with revalidate'
+    description: 'Default cache strategy for render chain, JCR, files and modules (could be override in RenderChain)'
+    methodsPattern: '^(GET|HEAD)$'
+    urlPattern: '^/(cms/render/live|files|repository|modules)/.*$'
+    headerTemplate: 'public'
+
+- editConfiguration: 'org.jahia.bundles.cache.client.rule'
+  configIdentifier: 'private'
+  properties:
+    index: '2'
+    name: 'Private with no caching'
+    description: 'Resources that should not be cached'
+    methodsPattern: '^(GET|HEAD)$'
+    urlPattern: '/(welcome.*|start|validateTicket|administration.*|cms/.*|engines/.*\\.jsp(\\?.*)?|tools/.*|gwt/.*\\.nocache\\..*)'
+    headerTemplate: 'private'
+
+- editConfiguration: 'org.jahia.bundles.cache.client.rule'
+  configIdentifier: 'immutable'
+  properties:
+    index: '3'
+    name: 'Immutable caching for one month'
+    description: 'Cache all unfiltered resources'
+    methodsPattern: '^(GET|HEAD)$'
+    urlPattern: '/.*'
+    headerTemplate: 'immutable'
