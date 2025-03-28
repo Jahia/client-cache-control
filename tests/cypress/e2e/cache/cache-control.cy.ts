@@ -54,9 +54,9 @@ describe('Cache Control header tests', () => {
             followRedirect: true,
             failOnStatusCode: false
         }).then(response => {
+            cy.log('Response headers: ' + JSON.stringify(response.headers));
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('bodywrapper');
-            cy.log('Response headers: ' + JSON.stringify(response.headers));
             const cache = response.headers['Cache-Control'];
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
