@@ -86,16 +86,16 @@ public class ClientCacheService {
 
     @Activate
     @Modified
-    public void activate(Config config) {
-        LOGGER.info("Activating Client Cache Service...");
+    public void setup(Config config) {
+        LOGGER.info("Activate/Update Client Cache Service...");
         this.cacheControlHeaderTemplates = this.computeCacheControlHeaderTemplates(config);
         this.logOverrides = Boolean.parseBoolean(config.logOverrides());
-        cacheControlHeaderTemplates.forEach((cck, ccv) -> LOGGER.info("Cache Control Value: [{}] {}", cck, ccv));
+        cacheControlHeaderTemplates.forEach((cck, ccv) -> LOGGER.info("Cache Control Header Templates: [{}] {}", cck, ccv));
     }
 
     @Deactivate
-    public void deactivate() {
-        LOGGER.debug("Deactivating Client Cache Service...");
+    public void teardown() {
+        LOGGER.debug("Deactivate Client Cache Service...");
         this.cacheControlHeaderTemplates = new HashMap<>();
     }
 
