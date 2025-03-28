@@ -40,6 +40,7 @@ describe('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('bodywrapper');
+            cy.log('Response headers: ' + JSON.stringify(response.headers));
             const cache = response.headers['Cache-Control'];
             expect(cache).to.contains('private');
             expect(cache).to.contains('no-cache');
@@ -55,6 +56,7 @@ describe('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('bodywrapper');
+            cy.log('Response headers: ' + JSON.stringify(response.headers));
             const cache = response.headers['Cache-Control'];
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
@@ -92,6 +94,7 @@ describe('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Private');
+            cy.log('Response headers: ' + JSON.stringify(response.headers));
             const cache = response.headers['Cache-Control'];
             expect(cache).to.contains('private');
             expect(cache).to.contains('no-cache');
@@ -128,6 +131,7 @@ describe('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Authored');
+            cy.log('Response headers: ' + JSON.stringify(response.headers));
             const cache = response.headers['Cache-Control'];
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
@@ -166,6 +170,7 @@ describe('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Authored');
+            cy.log('Response headers: ' + JSON.stringify(response.headers));
             const cache = response.headers['Cache-Control'];
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
@@ -210,6 +215,7 @@ describe('Cache Control header tests', () => {
                 // eslint-disable-next-line max-nested-callbacks
                 cy.request(href).then(response2 => {
                     expect(response2.status).to.eq(200);
+                    cy.log('Response headers: ' + JSON.stringify(response.headers));
                     const cache = response.headers['Cache-Control'];
                     expect(cache).to.contains('public');
                     expect(cache).to.contains('max-age=');

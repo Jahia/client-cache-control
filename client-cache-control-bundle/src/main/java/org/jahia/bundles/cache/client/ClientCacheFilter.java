@@ -94,7 +94,7 @@ public class ClientCacheFilter extends AbstractServletFilter {
         }
         chain.doFilter(request, hResponse);
         if (service.logOverridesCacheControlHeader() && !hResponse.getHeader(HttpHeaders.CACHE_CONTROL).equals(presetCacheControlValue)) {
-            LOGGER.info("[{}] Cache-Control header overridden by other component, current value: {} restored by preset value: {}", hRequest.getRequestURI(), hResponse.getHeader(HttpHeaders.CACHE_CONTROL), presetCacheControlValue);
+            LOGGER.info("[{}] Cache-Control header overridden by other component, current value: {} was preset to value: {}", hRequest.getRequestURI(), hResponse.getHeader(HttpHeaders.CACHE_CONTROL), presetCacheControlValue);
         }
         hResponse.applyHeaders();
         if (LOGGER.isDebugEnabled()) {
