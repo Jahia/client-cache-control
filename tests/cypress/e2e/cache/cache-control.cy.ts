@@ -40,8 +40,8 @@ describe('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('bodywrapper');
-            cy.log('Response headers: ' + JSON.stringify(response.headers));
-            const cache = response.headers['Cache-Control'];
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
             expect(cache).to.contains('private');
             expect(cache).to.contains('no-cache');
             expect(cache).to.contains('no-store');
@@ -54,10 +54,10 @@ describe('Cache Control header tests', () => {
             followRedirect: true,
             failOnStatusCode: false
         }).then(response => {
-            cy.log('Response headers: ' + JSON.stringify(response.headers));
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('bodywrapper');
-            const cache = response.headers['Cache-Control'];
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
             expect(cache).to.contains('max-age=1');
@@ -94,8 +94,8 @@ describe('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Private');
-            cy.log('Response headers: ' + JSON.stringify(response.headers));
-            const cache = response.headers['Cache-Control'];
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
             expect(cache).to.contains('private');
             expect(cache).to.contains('no-cache');
             expect(cache).to.contains('no-store');
@@ -131,8 +131,8 @@ describe('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Authored');
-            cy.log('Response headers: ' + JSON.stringify(response.headers));
-            const cache = response.headers['Cache-Control'];
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
             expect(cache).to.contains('max-age=1');
@@ -170,8 +170,8 @@ describe('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Authored');
-            cy.log('Response headers: ' + JSON.stringify(response.headers));
-            const cache = response.headers['Cache-Control'];
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
             expect(cache).to.contains('max-age=1');
@@ -210,19 +210,24 @@ describe('Cache Control header tests', () => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Authored');
             cy.log('The page should contains Cache-Control header for custom content when not logged');
-            cy.get('link#staticAssetCSS0').invoke('attr', 'href').then(href => {
-                cy.log('The css file should contains Cache-Control header for immutable content when not logged, visiting: ' + href);
-                // eslint-disable-next-line max-nested-callbacks
-                cy.request(href).then(response2 => {
+            const cssHrefMatch = response.body.match(/<link[^>]+id="staticAssetCSS0"[^>]+href="([^"]+)"/);
+
+            if (cssHrefMatch) {
+                const cssHref = cssHrefMatch[1]; // L'URL du CSS
+                cy.log('The CSS file should contain Cache-Control header for immutable content when not logged, visiting: ' + cssHref);
+
+                cy.request(cssHref).then(response2 => {
                     expect(response2.status).to.eq(200);
-                    cy.log('Response headers: ' + JSON.stringify(response.headers));
-                    const cache = response.headers['Cache-Control'];
-                    expect(cache).to.contains('public');
-                    expect(cache).to.contains('max-age=');
-                    expect(cache).to.contains('s-maxage=60');
-                    expect(cache).to.contains('immutable');
+                    expect(response2.headers).to.have.property('cache-control');
+                    const cache = response2.headers['cache-control'];
+                    expect(cache).to.include('public');
+                    expect(cache).to.include('max-age=');
+                    expect(cache).to.include('s-maxage=60');
+                    expect(cache).to.include('immutable');
                 });
-            });
+            } else {
+                throw new Error('⚠️ CSS link with id "staticAssetCSS0" not found in the response body');
+            }
         });
     });
     // Test case 7 : Verify that accessing Csrf module resources are flagged with an immutable strategy

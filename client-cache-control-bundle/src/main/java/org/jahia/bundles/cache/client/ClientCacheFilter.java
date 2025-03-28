@@ -71,7 +71,7 @@ public class ClientCacheFilter extends AbstractServletFilter {
 
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest hRequest = (HttpServletRequest) request;
-        ClientCacheHeaderResponseWrapper hResponse = new ClientCacheHeaderResponseWrapper((HttpServletResponse) response);
+        HttpServletResponse hResponse = (HttpServletResponse) response;
         LOGGER.debug("{} {} Entering Cache Control preset filter", hRequest.getMethod(), hRequest.getRequestURI());
         hRequest.setAttribute(ClientCacheService.CC_ORIGINAL_REQUEST_URI_ATTR, hRequest.getRequestURI());
         // Check if there is a rule that matches the request
@@ -93,10 +93,10 @@ public class ClientCacheFilter extends AbstractServletFilter {
             LOGGER.debug("[{}] Predefining DEFAULT client cache control", hRequest.getRequestURI());
         }
         chain.doFilter(request, hResponse);
-        if (service.logOverridesCacheControlHeader() && !hResponse.getHeader(HttpHeaders.CACHE_CONTROL).equals(presetCacheControlValue)) {
-            LOGGER.info("[{}] Cache-Control header overridden by other component, current value: {} was preset to value: {}", hRequest.getRequestURI(), hResponse.getHeader(HttpHeaders.CACHE_CONTROL), presetCacheControlValue);
+        if (service.logOverridesCacheControlHeader() && !presetCacheControlValue.equals(hResponse.getHeader(HttpHeaders.CACHE_CONTROL))) {
+            String currentCacheControlValue = hResponse.getHeader(HttpHeaders.CACHE_CONTROL) != null ? hResponse.getHeader(HttpHeaders.CACHE_CONTROL) : "Header Not Set";
+            LOGGER.info("[{}] Cache-Control header overridden/removed by other component, current value: [{}] was preset to value: [{}]", hRequest.getRequestURI(), currentCacheControlValue, presetCacheControlValue);
         }
-        hResponse.applyHeaders();
         if (LOGGER.isDebugEnabled()) {
             hResponse.getHeaderNames().forEach(headerName -> LOGGER.debug("[{}]  Final Header: [{}] Value: [{}]", hRequest.getRequestURI(), headerName, hResponse.getHeader(headerName)));
         }
