@@ -49,7 +49,7 @@
     <parent>
         <groupId>org.jahia.bundles</groupId>
         <artifactId>client-cache-control-root</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>9.0.0-SNAPSHOT</version>
     </parent>
     <name>Jahia Client Cache Bundle</name>
     <artifactId>org.jahia.bundles.client-cache-control</artifactId>

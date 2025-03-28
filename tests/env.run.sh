@@ -55,15 +55,15 @@ else
   MANIFEST="curl-manifest"
 fi
 
-#Snapshot exists which means we want to unistall existing client-cache-control and install the snapshot
+#Snapshot exists which means we want to uninstall existing client-cache-control and install the snapshot
 if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
     echo "Will uninstall existing client-cache-control and replace it with supplied snapshot"
-    curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallFeature":"client-cache-control"}]'
+    curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
     #TODO We uninstall the feature from the other nodes as well, check that uninstall feature does not work on all nodes in the cluster
     echo "Uninstalling client-cache-control from others nodes if cluster is enabled"
     if [[ "${JAHIA_CLUSTER_ENABLED}" == "true" ]]; then
-        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-a:8080/modules/api/provisioning --form script='[{"uninstallFeature":"client-cache-control"}]'
-        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-b:8080/modules/api/provisioning --form script='[{"uninstallFeature":"client-cache-control"}]'
+        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-a:8080/modules/api/provisioning --form script='[{"uninstallFeature":"org.jahia.bundles.client-cache-control"}]'
+        curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-b:8080/modules/api/provisioning --form script='[{"uninstallFeature":"org.jahia.bundles.client-cache-control"}]'
     fi
 
     #TODO We install the bundle instead of the feature because no feature provisioning is available for now
