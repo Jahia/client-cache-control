@@ -48,11 +48,11 @@ public class ClientCacheService {
 
         @AttributeDefinition(name = "Intermediates Cache Duration",
                 description = "Duration while an intermediate can keep content in cache without revalidation (in seconds)")
-        String ttl_intermediates() default "300";
+        String intermediates_ttl() default "300";
 
         @AttributeDefinition(name = "Immutable Cache Duration",
                 description = "Duration while content is considered immutable in all caches (in seconds)")
-        String ttl_immutable() default "2678400";
+        String immutable_ttl() default "2678400";
 
         @AttributeDefinition(name = "Log Cache Control Header when overridden",
                 description = "Log the Cache-Control header value when overrides by other component in the request/response processing chain is detected")
@@ -136,8 +136,8 @@ public class ClientCacheService {
 
     private String configureCacheControlHeaderTemplate(String value, Config config) {
         String configuredValue = value;
-        configuredValue = configuredValue.replace("##intermediates.ttl##", config.ttl_intermediates());
-        configuredValue = configuredValue.replace("##immutable.ttl##", config.ttl_immutable());
+        configuredValue = configuredValue.replace("##intermediates.ttl##", config.intermediates_ttl());
+        configuredValue = configuredValue.replace("##immutable.ttl##", config.immutable_ttl());
         return configuredValue;
     }
 
