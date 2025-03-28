@@ -55,15 +55,6 @@ else
   MANIFEST="curl-manifest"
 fi
 
-echo "$(date +'%d %B %Y - %k:%M') == Executing manifest: ${MANIFEST} =="
-curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script="@./run-artifacts/${MANIFEST};type=text/yaml" $(find assets -type f | sed -E 's/^(.+)$/--form file=\"@\1\"/' | xargs)
-echo
-if [[ $? -eq 1 ]]; then
-  echo "$(date +'%d %B %Y - %k:%M') == PROVISIONING FAILURE - EXITING SCRIPT, NOT RUNNING THE TESTS"
-  echo "failure" > ./results/test_failure
-  exit 1
-fi
-
 #Snapshot exists which means we want to unistall existing client-cache-control and install the snapshot
 if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
     echo "Will uninstall existing client-cache-control and replace it with supplied snapshot"
@@ -90,6 +81,15 @@ if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
     done
 
     cd ..
+fi
+
+echo "$(date +'%d %B %Y - %k:%M') == Executing manifest: ${MANIFEST} =="
+curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script="@./run-artifacts/${MANIFEST};type=text/yaml" $(find assets -type f | sed -E 's/^(.+)$/--form file=\"@\1\"/' | xargs)
+echo
+if [[ $? -eq 1 ]]; then
+  echo "$(date +'%d %B %Y - %k:%M') == PROVISIONING FAILURE - EXITING SCRIPT, NOT RUNNING THE TESTS"
+  echo "failure" > ./results/test_failure
+  exit 1
 fi
 
 echo "$(date +'%d %B %Y - %k:%M') == Fetching the list of installed modules =="
