@@ -244,7 +244,6 @@ describe('Cache Control header tests', () => {
             expect(response.status).to.eq(200);
             expect(response.headers).to.have.property('cache-control');
             const cache = response.headers['cache-control'];
-            //expect(cache).to.contains('private');
             expect(cache).to.contains('no-cache');
             expect(cache).to.contains('no-store');
             expect(cache).to.contains('max-age=0');
