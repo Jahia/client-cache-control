@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletResponseWrapper;
 import java.io.IOException;
 import java.util.*;
 
@@ -71,7 +70,7 @@ public class ClientCacheFilter extends AbstractServletFilter {
 
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest hRequest = (HttpServletRequest) request;
-        HttpServletResponse hResponse = (HttpServletResponse) response;
+        ClientCacheResponseWrapper hResponseWrapper = new ClientCacheResponseWrapper((HttpServletResponse) response);
         LOGGER.debug("{} {} Entering Cache Control preset filter", hRequest.getMethod(), hRequest.getRequestURI());
         hRequest.setAttribute(ClientCacheService.CC_ORIGINAL_REQUEST_URI_ATTR, hRequest.getRequestURI());
         // Check if there is a rule that matches the request
@@ -82,23 +81,28 @@ public class ClientCacheFilter extends AbstractServletFilter {
         // Otherwise, set the default cache control header (PRIVATE)
         String presetCacheControlValue = "";
         if (firstMatchingRule.isPresent()) {
+            LOGGER.debug("[{}] Found matching rule: {}", hRequest.getRequestURI(), firstMatchingRule.get().getName());
             request.setAttribute(ClientCacheService.CC_POLICY_ATTR, firstMatchingRule.get().getHeaderTemplate());
             presetCacheControlValue = service.getCacheControlHeaderTemplates().getOrDefault(firstMatchingRule.get().getHeaderTemplate().getName(),
                     service.getCacheControlHeaderTemplates().get(ClientCacheHeaderTemplate.PRIVATE.getName()));
-            hResponse.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
-            LOGGER.debug("[{}] Predefining client cache control for rule: {}", hRequest.getRequestURI(), firstMatchingRule.get().getName());
+            if (hResponseWrapper.containsHeader(HttpHeaders.CACHE_CONTROL)) {
+                LOGGER.warn("[{}] Cache-Control header already set to value: [{}]", hRequest.getRequestURI(), hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL));
+            }
+            hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
+            hResponseWrapper.setReadOnlyFilteredHeaders(!service.allowOverridesCacheControlHeader());
+            LOGGER.debug("[{}] Predefining and Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);
         } else {
             presetCacheControlValue = service.getCacheControlHeaderTemplates().get(ClientCacheHeaderTemplate.PRIVATE.getName());
-            hResponse.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
-            LOGGER.debug("[{}] Predefining DEFAULT client cache control", hRequest.getRequestURI());
+            hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
+            LOGGER.debug("[{}] Predefining DEFAULT Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);
         }
-        chain.doFilter(request, hResponse);
-        if (service.logOverridesCacheControlHeader() && !presetCacheControlValue.equals(hResponse.getHeader(HttpHeaders.CACHE_CONTROL))) {
-            String currentCacheControlValue = hResponse.getHeader(HttpHeaders.CACHE_CONTROL) != null ? hResponse.getHeader(HttpHeaders.CACHE_CONTROL) : "Header Not Set";
+        chain.doFilter(request, hResponseWrapper);
+        if (service.logOverridesCacheControlHeader() && !presetCacheControlValue.equals(hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL))) {
+            String currentCacheControlValue = hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL) != null ? hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL) : "Header Not Set";
             LOGGER.info("[{}] Cache-Control header overridden/removed by other component, current value: [{}] was preset to value: [{}]", hRequest.getRequestURI(), currentCacheControlValue, presetCacheControlValue);
         }
         if (LOGGER.isDebugEnabled()) {
-            hResponse.getHeaderNames().forEach(headerName -> LOGGER.debug("[{}]  Final Header: [{}] Value: [{}]", hRequest.getRequestURI(), headerName, hResponse.getHeader(headerName)));
+            hResponseWrapper.getHeaderNames().forEach(headerName -> LOGGER.debug("[{}]  Final Header: [{}] Value: [{}]", hRequest.getRequestURI(), headerName, hResponseWrapper.getHeader(headerName)));
         }
     }
 
@@ -108,59 +112,4 @@ public class ClientCacheFilter extends AbstractServletFilter {
     @Override public void destroy() {
     }
 
-    public static class ClientCacheHeaderResponseWrapper extends HttpServletResponseWrapper {
-
-        private final Map<String, String> overriddenHeaders = new HashMap<>();
-        private final List<String> overriddenHeadersNames = List.of(HttpHeaders.CACHE_CONTROL, HttpHeaders.EXPIRES, HttpHeaders.PRAGMA);
-
-        public ClientCacheHeaderResponseWrapper(HttpServletResponse response) {
-            super(response);
-        }
-
-        @Override
-        public void setHeader(String name, String value) {
-            if (overriddenHeadersNames.contains(name)) {
-                overriddenHeaders.put(name, value);
-            } else {
-                super.setHeader(name, value);
-            }
-        }
-
-        @Override
-        public void addHeader(String name, String value) {
-            if (overriddenHeadersNames.contains(name)) {
-                overriddenHeaders.put(name, value);
-            } else {
-                super.addHeader(name, value);
-            }
-        }
-
-        @Override
-        public String getHeader(String name) {
-            if (overriddenHeadersNames.contains(name)) {
-                return overriddenHeaders.get(name);
-            }
-            return overriddenHeaders.getOrDefault(name, super.getHeader(name));
-        }
-
-        @Override
-        public Collection<String> getHeaderNames() {
-            Set<String> headerNames = new HashSet<>(super.getHeaderNames());
-            overriddenHeadersNames.forEach(headerNames::remove);
-            headerNames.addAll(overriddenHeaders.keySet());
-            return headerNames;
-        }
-
-        @Override
-        public Collection<String> getHeaders(String name) {
-            if (overriddenHeaders.containsKey(name)) {
-                return Collections.singletonList(overriddenHeaders.get(name));
-            }
-            return super.getHeaders(name);
-        }
-
-        public void applyHeaders() {
-            overriddenHeaders.forEach(super::setHeader);
-        }
-    }
 }

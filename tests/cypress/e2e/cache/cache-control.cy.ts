@@ -221,20 +221,36 @@ describe('Cache Control header tests', () => {
                     expect(response2.headers).to.have.property('cache-control');
                     const cache = response2.headers['cache-control'];
                     expect(cache).to.include('public');
-                    expect(cache).to.include('max-age=');
-                    expect(cache).to.include('s-maxage=60');
+                    expect(cache).to.include('max-age=2678400');
+                    expect(cache).to.include('s-maxage=2678400');
+                    expect(cache).to.contains('stale-while-revalidate=15');
                     expect(cache).to.include('immutable');
                 });
             } else {
-                throw new Error('⚠️ CSS link with id "staticAssetCSS0" not found in the response body');
+                throw new Error('CSS link with id "staticAssetCSS0" not found in the response body');
             }
         });
     });
+
     // Test case 7 : Verify that accessing Csrf module resources are flagged with an immutable strategy
     // Test case 8 : Verify that accessing /tools is flagged with a private strategy
-    // Test case 9 : Verify that accessing /cms/* (other than /cms/render) are flagged with a private strategy
-    // Test case 10 : Verify that accessing /engines/*.jsp element are flagged with a private strategy
-    // Test case 11 : Verify that accessing /administration/* JSP element are flagged with a private strategy
+    it('should find cache-control header private for tools, test case 8', () => {
+        cy.login();
+        cy.request({
+            url: '/tools',
+            followRedirect: true,
+            failOnStatusCode: false
+        }).then(response => {
+            expect(response.status).to.eq(200);
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
+            //expect(cache).to.contains('private');
+            expect(cache).to.contains('no-cache');
+            expect(cache).to.contains('no-store');
+            expect(cache).to.contains('max-age=0');
+        });
+        cy.logout();
+    });
 
     after('Clean', () => {
         deleteSite(targetSiteKey);

@@ -79,7 +79,7 @@ public class ClientCacheRenderFilter extends AbstractFilter {
                     String.valueOf(renderContext.getClientCachePolicy().getTtl()));
         }
         LOGGER.debug("Setting Response Cache-Control to: {}", cacheControl);
-        renderContext.getResponse().setHeader(HttpHeaders.CACHE_CONTROL, cacheControl);
+        renderContext.getResponse().setHeader("Override-".concat(HttpHeaders.CACHE_CONTROL), cacheControl);
         return super.execute(previousOut, renderContext, resource, chain);
     }
 

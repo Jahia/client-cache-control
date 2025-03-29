@@ -54,6 +54,10 @@ public class ClientCacheService {
                 description = "Duration while content is considered immutable in all caches (in seconds)")
         String immutable_ttl() default "2678400";
 
+        @AttributeDefinition(name = "Allow Cache Control Header overrides",
+                description = "Allow the Cache-Control header value to be overridden by other component in the request/response processing chain")
+        String allowOverrides() default "true";
+
         @AttributeDefinition(name = "Log Cache Control Header when overridden",
                 description = "Log the Cache-Control header value when overrides by other component in the request/response processing chain is detected")
         String logOverrides() default "true";
@@ -83,6 +87,7 @@ public class ClientCacheService {
     private ClientCacheFilterRuleFactory factory;
     private Map<String, String> cacheControlHeaderTemplates = new HashMap<>();
     private boolean logOverrides = true;
+    private boolean allowOverrides = true;
 
     @Activate
     @Modified
@@ -90,6 +95,7 @@ public class ClientCacheService {
         LOGGER.info("Activate/Update Client Cache Service...");
         this.cacheControlHeaderTemplates = this.computeCacheControlHeaderTemplates(config);
         this.logOverrides = Boolean.parseBoolean(config.logOverrides());
+        this.allowOverrides = Boolean.parseBoolean(config.allowOverrides());
         cacheControlHeaderTemplates.forEach((cck, ccv) -> LOGGER.info("Cache Control Header Templates: [{}] {}", cck, ccv));
     }
 
@@ -119,6 +125,10 @@ public class ClientCacheService {
 
     public boolean logOverridesCacheControlHeader() {
         return logOverrides;
+    }
+
+    public boolean allowOverridesCacheControlHeader() {
+        return allowOverrides;
     }
 
     public Map<String, String> getCacheControlHeaderTemplates() {
