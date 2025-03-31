@@ -21,7 +21,7 @@
  *
  * ==========================================================================================
  */
-package org.jahia.bundles.cache.client;
+package org.jahia.bundles.cache.client.filter;
 
 import org.apache.http.HttpHeaders;
 import org.slf4j.Logger;
@@ -65,7 +65,7 @@ public class ClientCacheResponseWrapper extends HttpServletResponseWrapper {
     }
 
     @Override public void setHeader(String name, String value) {
-        if (name.startsWith("Override-")) {
+        if (name.startsWith("Force-")) {
             LOGGER.debug("Overriding header {} with value {}", name, value);
             super.setHeader(name.substring(9), value);
         } else if (filteredHeadersNames.contains(name)) {

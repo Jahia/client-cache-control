@@ -21,35 +21,28 @@
  *
  * ==========================================================================================
  */
-package org.jahia.bundles.cache.client;
+package org.jahia.bundles.cache.client.api;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Jerome Blanchard
  */
-public enum ClientCacheHeaderTemplate {
+public interface ClientCacheService {
 
-    PRIVATE("private"),
-    PUBLIC("public"),
-    CUSTOM("custom"),
-    IMMUTABLE("immutable");
+    String CC_POLICY_ATTR = "jahiaClientCachePolicy";
+    String CC_ORIGINAL_REQUEST_URI_ATTR = "jahiaOriginalRequestURI";
+    String CC_CUSTOM_TTL_ATTR = "jahiaClientCacheCustomTTL";
 
-    private final String name;
+    ClientCacheMode getMode();
 
-    ClientCacheHeaderTemplate(String name) {
-        this.name = name;
-    }
+    List<? extends ClientCacheRule> listRules();
 
-    public String getName() {
-        return name;
-    }
+    Collection<? extends ClientCacheTemplate> listHeaderTemplates();
 
-    public static ClientCacheHeaderTemplate forName(String name) {
-        for (ClientCacheHeaderTemplate template : values()) {
-            if (template.getName().equals(name)) {
-                return template;
-            }
-        }
-        return null;
-    }
+    String getCacheControlHeader(String method, String uri, Map<String, String> templateParams);
 
+    String getCacheControlHeader(String template, Map<String, String> templateParams);
 }

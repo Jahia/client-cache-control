@@ -21,12 +21,16 @@
  *
  * ==========================================================================================
  */
-package org.jahia.bundles.cache.client;
+package org.jahia.bundles.cache.client.impl;
 
+import org.jahia.bundles.cache.client.api.ClientCacheMode;
+import org.jahia.bundles.cache.client.api.ClientCacheService;
+import org.jahia.bundles.cache.client.api.ClientCacheTemplate;
 import org.osgi.service.component.annotations.*;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,16 +39,24 @@ import java.util.*;
 /**
  * @author Jerome Blanchard
  */
-@Component(service = {ClientCacheService.class}, configurationPid = "org.jahia.bundles.cache.client", immediate = true)
-@Designate(ocd = ClientCacheService.Config.class)
-public class ClientCacheService {
+@Component(service = { ClientCacheService.class}, configurationPid = "org.jahia.bundles.cache.client", immediate = true)
+@Designate(ocd = ClientCacheServiceImpl.Config.class)
+public class ClientCacheServiceImpl implements ClientCacheService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheServiceImpl.class);
 
     @ObjectClassDefinition(
             name = "org.jahia.bundles.cache.client",
             description = "Configuration of the client cache control")
     public @interface Config {
+
+        @AttributeDefinition(name = "Allow Cache Control Header overrides",
+                description = "Allow the Cache-Control header value to be overridden by other component in the request/response processing chain",
+                options = {
+                        @Option(label = "Lock cache header", value = "strict"),
+                        @Option(label = "Allow overrides", value = "overrides")
+                })
+        String mode() default "overrides";
 
         @AttributeDefinition(name = "Intermediates Cache Duration",
                 description = "Duration while an intermediate can keep content in cache without revalidation (in seconds)")
@@ -53,14 +65,6 @@ public class ClientCacheService {
         @AttributeDefinition(name = "Immutable Cache Duration",
                 description = "Duration while content is considered immutable in all caches (in seconds)")
         String immutable_ttl() default "2678400";
-
-        @AttributeDefinition(name = "Allow Cache Control Header overrides",
-                description = "Allow the Cache-Control header value to be overridden by other component in the request/response processing chain")
-        String allowOverrides() default "true";
-
-        @AttributeDefinition(name = "Log Cache Control Header when overridden",
-                description = "Log the Cache-Control header value when overrides by other component in the request/response processing chain is detected")
-        String logOverrides() default "true";
 
         @AttributeDefinition(name = "Private Cache Header Template",
                 description = "(DO NOT EDIT WITHOUT KNOWING THE IMPLICATIONS) Cache header template for private resource (client cache with revalidation and no intermediates cache)")
@@ -80,13 +84,8 @@ public class ClientCacheService {
 
     }
 
-    public static final String CC_POLICY_ATTR = "jahiaClientCachePolicy";
-    public static final String CC_ORIGINAL_REQUEST_URI_ATTR = "jahiaOriginalRequestURI";
-    public static final String CC_CUSTOM_TTL_ATTR = "jahiaClientCacheCustomTTL";
-
-    private ClientCacheFilterRuleFactory factory;
-    private Map<String, String> cacheControlHeaderTemplates = new HashMap<>();
-    private boolean logOverrides = true;
+    private ClientCacheFilterRuleSetFactory factory;
+    private Map<String, ClientCacheFilterTemplate> cacheControlHeaderTemplates = new HashMap<>();
     private boolean allowOverrides = true;
 
     @Activate
@@ -94,8 +93,7 @@ public class ClientCacheService {
     public void setup(Config config) {
         LOGGER.info("Activate/Update Client Cache Service...");
         this.cacheControlHeaderTemplates = this.computeCacheControlHeaderTemplates(config);
-        this.logOverrides = Boolean.parseBoolean(config.logOverrides());
-        this.allowOverrides = Boolean.parseBoolean(config.allowOverrides());
+        this.allowOverrides = config.mode().equals("overrides");
         cacheControlHeaderTemplates.forEach((cck, ccv) -> LOGGER.info("Cache Control Header Templates: [{}] {}", cck, ccv));
     }
 
@@ -105,42 +103,70 @@ public class ClientCacheService {
         this.cacheControlHeaderTemplates = new HashMap<>();
     }
 
-    @Reference(service = ClientCacheFilterRuleFactory.class, policy = ReferencePolicy.DYNAMIC, bind = "setRules", unbind = "clearRules")
-    public void setRules(ClientCacheFilterRuleFactory factory) {
-        LOGGER.info("Setting rule's factory");
+    @Reference(service = ClientCacheFilterRuleSetFactory.class, policy = ReferencePolicy.DYNAMIC, bind = "setRuleSetFactory", unbind = "clearRuleSetFactory")
+    public void setRuleSetFactory(ClientCacheFilterRuleSetFactory factory) {
+        LOGGER.info("Setting RuleSet factory");
         this.factory = factory;
     }
 
-    public void clearRules(ClientCacheFilterRuleFactory factory) {
-        LOGGER.info("Clearing rule's factory");
+    public void clearRuleSetFactory(ClientCacheFilterRuleSetFactory factory) {
+        LOGGER.info("Clearing RuleSet factory");
         this.factory = null;
-    }
-
-    public List<ClientCacheFilterRule> getRules() {
-        if (factory == null) {
-            return Collections.emptyList();
-        }
-        return this.factory.getRules();
-    }
-
-    public boolean logOverridesCacheControlHeader() {
-        return logOverrides;
     }
 
     public boolean allowOverridesCacheControlHeader() {
         return allowOverrides;
     }
 
-    public Map<String, String> getCacheControlHeaderTemplates() {
-        return cacheControlHeaderTemplates;
+    @Override public ClientCacheMode getMode() {
+        if (allowOverrides) {
+            return ClientCacheMode.ALLOW_OVERRIDES;
+        } else {
+            return ClientCacheMode.STRICT;
+        }
     }
 
-    private Map<String, String> computeCacheControlHeaderTemplates(Config config) {
-        Map<String, String> values = new HashMap<>();
-        values.put(ClientCacheHeaderTemplate.PRIVATE.getName(), config.cache_header_template_private());
-        values.put(ClientCacheHeaderTemplate.PUBLIC.getName(), configureCacheControlHeaderTemplate(config.cache_header_template_public(), config));
-        values.put(ClientCacheHeaderTemplate.CUSTOM.getName(), configureCacheControlHeaderTemplate(config.cache_header_template_custom(), config));
-        values.put(ClientCacheHeaderTemplate.IMMUTABLE.getName(), configureCacheControlHeaderTemplate(config.cache_header_template_immutable(), config));
+    @Override
+    public List<ClientCacheFilterRule> listRules() {
+        if (factory == null) {
+            return Collections.emptyList();
+        }
+        return this.factory.getRules();
+    }
+
+    @Override public Collection<? extends ClientCacheTemplate> listHeaderTemplates() {
+        return cacheControlHeaderTemplates.values();
+    }
+
+    @Override public String getCacheControlHeader(String method, String uri, Map<String, String> params) {
+        Optional<ClientCacheFilterRule> mRule = listRules().stream()
+                .filter(rule -> rule.getMethods().contains(method) && rule.getUrlPattern().matcher(uri).matches()).findFirst();
+        if (mRule.isPresent()) {
+            if (mRule.get().getHeaderValue() != null) {
+                return mRule.get().getHeaderValue();
+            }
+            if (mRule.get().getHeaderTemplate() != null) {
+                return cacheControlHeaderTemplates.getOrDefault(mRule.get().getHeaderTemplate(), ClientCacheFilterTemplate.EMPTY).getFilteredTemplate(params);
+            }
+            return mRule.get().getHeaderValue();
+        }
+        return "";
+    }
+
+    @Override public String getCacheControlHeader(String templateName, Map<String, String> params) {
+        return cacheControlHeaderTemplates.getOrDefault(templateName, ClientCacheFilterTemplate.EMPTY).getFilteredTemplate(params);
+    }
+
+    private Map<String, ClientCacheFilterTemplate> computeCacheControlHeaderTemplates(Config config) {
+        Map<String, ClientCacheFilterTemplate> values = new HashMap<>();
+        values.put(ClientCacheFilterTemplate.PRIVATE,
+                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PRIVATE, configureCacheControlHeaderTemplate(config.cache_header_template_private(), config)));
+        values.put(ClientCacheFilterTemplate.PUBLIC,
+                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PUBLIC, configureCacheControlHeaderTemplate(config.cache_header_template_public(), config)));
+        values.put(ClientCacheFilterTemplate.CUSTOM,
+                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.CUSTOM, configureCacheControlHeaderTemplate(config.cache_header_template_custom(), config)));
+        values.put(ClientCacheFilterTemplate.IMMUTABLE,
+                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.IMMUTABLE, configureCacheControlHeaderTemplate(config.cache_header_template_immutable(), config)));
         return values;
     }
 

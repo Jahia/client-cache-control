@@ -21,10 +21,14 @@
  *
  * ==========================================================================================
  */
-package org.jahia.bundles.cache.client;
+package org.jahia.bundles.cache.client.filter;
 
 import org.apache.http.HttpHeaders;
 import org.jahia.bin.filters.AbstractServletFilter;
+import org.jahia.bundles.cache.client.api.ClientCacheMode;
+import org.jahia.bundles.cache.client.api.ClientCacheService;
+import org.jahia.bundles.cache.client.impl.ClientCacheFilterTemplate;
+import org.jahia.bundles.cache.client.impl.ClientCacheServiceImpl;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -35,7 +39,7 @@ import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
 
 /**
  * Rules to apply preset Client Cache Control Policies based on URL patterns.
@@ -50,7 +54,7 @@ public class ClientCacheFilter extends AbstractServletFilter {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheFilter.class);
 
     public static final String FILTER_NAME = "ClientCacheFilter";
-    public static final float FILTER_ORDER = -3f; //Just after URLRewriteFilter
+    public static final float FILTER_ORDER = -3f;
     public static final boolean FILTER_MATCH_ALL_URLS = true;
 
     private ClientCacheService service;
@@ -72,34 +76,28 @@ public class ClientCacheFilter extends AbstractServletFilter {
         HttpServletRequest hRequest = (HttpServletRequest) request;
         ClientCacheResponseWrapper hResponseWrapper = new ClientCacheResponseWrapper((HttpServletResponse) response);
         LOGGER.debug("{} {} Entering Cache Control preset filter", hRequest.getMethod(), hRequest.getRequestURI());
-        hRequest.setAttribute(ClientCacheService.CC_ORIGINAL_REQUEST_URI_ATTR, hRequest.getRequestURI());
-        // Check if there is a rule that matches the request
-        Optional<ClientCacheFilterRule> firstMatchingRule = service.getRules().stream()
-                .filter(rule -> rule.getMethodsPattern().matcher(hRequest.getMethod()).matches()
-                        && rule.getUrlPattern().matcher(hRequest.getRequestURI()).matches()).findFirst();
-        // If a rule matches, preset the cache control header and set the policy attribute
-        // Otherwise, set the default cache control header (PRIVATE)
-        String presetCacheControlValue = "";
-        if (firstMatchingRule.isPresent()) {
-            LOGGER.debug("[{}] Found matching rule: {}", hRequest.getRequestURI(), firstMatchingRule.get().getName());
-            request.setAttribute(ClientCacheService.CC_POLICY_ATTR, firstMatchingRule.get().getHeaderTemplate());
-            presetCacheControlValue = service.getCacheControlHeaderTemplates().getOrDefault(firstMatchingRule.get().getHeaderTemplate().getName(),
-                    service.getCacheControlHeaderTemplates().get(ClientCacheHeaderTemplate.PRIVATE.getName()));
+        hRequest.setAttribute(ClientCacheServiceImpl.CC_ORIGINAL_REQUEST_URI_ATTR, hRequest.getRequestURI());
+        String presetCacheControlValue = service.getCacheControlHeader(hRequest.getMethod(), hRequest.getRequestURI(), Collections.EMPTY_MAP);
+        if (presetCacheControlValue.isEmpty()) {
+            presetCacheControlValue = service.getCacheControlHeader(ClientCacheFilterTemplate.DEFAULT, Collections.EMPTY_MAP);
+            hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
+            LOGGER.debug("[{}] Predefining DEFAULT Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);
+        } else {
             if (hResponseWrapper.containsHeader(HttpHeaders.CACHE_CONTROL)) {
                 LOGGER.warn("[{}] Cache-Control header already set to value: [{}]", hRequest.getRequestURI(), hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL));
             }
             hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
-            hResponseWrapper.setReadOnlyFilteredHeaders(!service.allowOverridesCacheControlHeader());
+            hResponseWrapper.setReadOnlyFilteredHeaders(service.getMode().equals(ClientCacheMode.STRICT));
             LOGGER.debug("[{}] Predefining and Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);
-        } else {
-            presetCacheControlValue = service.getCacheControlHeaderTemplates().get(ClientCacheHeaderTemplate.PRIVATE.getName());
-            hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
-            LOGGER.debug("[{}] Predefining DEFAULT Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);
         }
         chain.doFilter(request, hResponseWrapper);
-        if (service.logOverridesCacheControlHeader() && !presetCacheControlValue.equals(hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL))) {
+        if (!presetCacheControlValue.equals(hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL))) {
             String currentCacheControlValue = hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL) != null ? hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL) : "Header Not Set";
-            LOGGER.info("[{}] Cache-Control header overridden/removed by other component, current value: [{}] was preset to value: [{}]", hRequest.getRequestURI(), currentCacheControlValue, presetCacheControlValue);
+            if (service.getMode().equals(ClientCacheMode.ALLOW_OVERRIDES)) {
+                LOGGER.debug("[{}] Cache-Control header overridden by other component, current value: [{}] was preset to value: [{}]", hRequest.getRequestURI(), currentCacheControlValue, presetCacheControlValue);
+            } else {
+                LOGGER.error("[{}] Cache-Control header overridden/removed by other component whereas strict mode configured, current value: [{}] was preset to value: [{}]", hRequest.getRequestURI(), currentCacheControlValue, presetCacheControlValue);
+            }
         }
         if (LOGGER.isDebugEnabled()) {
             hResponseWrapper.getHeaderNames().forEach(headerName -> LOGGER.debug("[{}]  Final Header: [{}] Value: [{}]", hRequest.getRequestURI(), headerName, hResponseWrapper.getHeader(headerName)));

@@ -51,12 +51,14 @@
         <artifactId>client-cache-control-root</artifactId>
         <version>9.0.0-SNAPSHOT</version>
     </parent>
-    <name>Jahia Client Cache Bundle</name>
-    <artifactId>org.jahia.bundles.client-cache-control</artifactId>
+    <name>Jahia Client Cache Control Implementation</name>
+    <artifactId>org.jahia.bundles.client-cache-control-impl</artifactId>
+    <version>9.0.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <properties>
-        <export-package>org.jahia.bundles.filters.cache.client</export-package>
+        <import-package>org.jahia.bundles.filters.cache.client.api</import-package>
+        <private-package>org.jahia.bundles.filters.cache.client.filter,org.jahia.bundles.filters.cache.client.impl,org.jahia.bundles.filters.cache.client.render</private-package>
     </properties>
 
     <build>
@@ -101,6 +103,11 @@
                                     <type>cfg</type>
                                     <classifier>rule-public-cfg</classifier>
                                 </artifact>
+                                <artifact>
+                                    <file>src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-default.yml</file>
+                                    <type>yml</type>
+                                    <classifier>ruleset-default-yml</classifier>
+                                </artifact>
                             </artifacts>
                         </configuration>
                     </execution>
@@ -138,6 +145,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.jahia.bundles</groupId>
+            <artifactId>org.jahia.bundles.client-cache-control-api</artifactId>
+            <version>9.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>org.jahia.server</groupId>
             <artifactId>jahia-impl</artifactId>
             <version>${jahia.version}</version>
@@ -153,6 +165,13 @@
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

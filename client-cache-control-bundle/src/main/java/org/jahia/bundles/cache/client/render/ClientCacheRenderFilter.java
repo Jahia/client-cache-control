@@ -21,9 +21,10 @@
  *
  * ==========================================================================================
  */
-package org.jahia.bundles.cache.client;
+package org.jahia.bundles.cache.client.render;
 
 import org.apache.http.HttpHeaders;
+import org.jahia.bundles.cache.client.api.ClientCacheService;
 import org.jahia.services.render.RenderContext;
 import org.jahia.services.render.Resource;
 import org.jahia.services.render.filter.AbstractFilter;
@@ -34,6 +35,8 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * Apply the client cache policy for resources served by the render chain.
@@ -72,14 +75,10 @@ public class ClientCacheRenderFilter extends AbstractFilter {
     @Override
     public String execute(String previousOut, RenderContext renderContext, Resource resource, RenderChain chain) throws Exception {
         LOGGER.debug("Client Cache Policy Level set to {} with a TTL of {}", renderContext.getClientCachePolicy().getLevel().getValue(), renderContext.getClientCachePolicy().getTtl());
-        String cacheControl = service.getCacheControlHeaderTemplates().get(renderContext.getClientCachePolicy().getLevel().getValue());
-        if (renderContext.getClientCachePolicy().getTtl() > 0) {
-            LOGGER.debug("Custom TTL detected, replacing custom TTL placeholder in cache control header with value {}", renderContext.getClientCachePolicy().getTtl());
-            cacheControl = cacheControl.replaceAll("%%" + ClientCacheService.CC_CUSTOM_TTL_ATTR + "%%",
-                    String.valueOf(renderContext.getClientCachePolicy().getTtl()));
-        }
+        String cacheControl = service.getCacheControlHeader(renderContext.getClientCachePolicy().getLevel().getValue(),
+                Map.of(ClientCacheService.CC_CUSTOM_TTL_ATTR, Integer.toString(renderContext.getClientCachePolicy().getTtl())));
         LOGGER.debug("Setting Response Cache-Control to: {}", cacheControl);
-        renderContext.getResponse().setHeader("Override-".concat(HttpHeaders.CACHE_CONTROL), cacheControl);
+        renderContext.getResponse().setHeader("Force-".concat(HttpHeaders.CACHE_CONTROL), cacheControl);
         return super.execute(previousOut, renderContext, resource, chain);
     }
 
