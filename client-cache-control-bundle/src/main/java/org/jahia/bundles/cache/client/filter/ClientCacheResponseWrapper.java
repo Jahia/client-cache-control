@@ -67,7 +67,7 @@ public class ClientCacheResponseWrapper extends HttpServletResponseWrapper {
     @Override public void setHeader(String name, String value) {
         if (name.startsWith("Force-")) {
             LOGGER.debug("Overriding header {} with value {}", name, value);
-            super.setHeader(name.substring(9), value);
+            super.setHeader(name.substring("Force-".length()), value);
         } else if (filteredHeadersNames.contains(name)) {
             if (!readOnlyFilteredHeaders) {
                 LOGGER.debug("Setting filtered header {} with value {}", name, value);

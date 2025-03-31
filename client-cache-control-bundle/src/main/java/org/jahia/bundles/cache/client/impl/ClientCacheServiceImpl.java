@@ -143,18 +143,22 @@ public class ClientCacheServiceImpl implements ClientCacheService {
                 .filter(rule -> rule.getMethods().contains(method) && rule.getUrlPattern().matcher(uri).matches()).findFirst();
         if (mRule.isPresent()) {
             if (mRule.get().getHeaderValue() != null) {
+                LOGGER.debug("Rule {} matched for method: {} and uri: {}, returning header value: {}", mRule.get(), method, uri, mRule.get().getHeaderValue());
                 return mRule.get().getHeaderValue();
             }
             if (mRule.get().getHeaderTemplate() != null) {
-                return cacheControlHeaderTemplates.getOrDefault(mRule.get().getHeaderTemplate(), ClientCacheFilterTemplate.EMPTY).getFilteredTemplate(params);
+                String headerValue = cacheControlHeaderTemplates.getOrDefault(mRule.get().getHeaderTemplate(), ClientCacheFilterTemplate.EMPTY).getFilteredTemplate(params);
+                LOGGER.debug("Rule {} matched for method: {} and uri: {}, returning header value: {}", mRule.get(), method, uri, headerValue);
+                return headerValue;
             }
-            return mRule.get().getHeaderValue();
         }
         return "";
     }
 
     @Override public String getCacheControlHeader(String templateName, Map<String, String> params) {
-        return cacheControlHeaderTemplates.getOrDefault(templateName, ClientCacheFilterTemplate.EMPTY).getFilteredTemplate(params);
+        String headerValue = cacheControlHeaderTemplates.getOrDefault(templateName, ClientCacheFilterTemplate.EMPTY).getFilteredTemplate(params);
+        LOGGER.debug("TemplateName {} returned header value: {}", templateName, headerValue);
+        return headerValue;
     }
 
     private Map<String, ClientCacheFilterTemplate> computeCacheControlHeaderTemplates(Config config) {

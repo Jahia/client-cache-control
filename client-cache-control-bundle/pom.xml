@@ -89,21 +89,6 @@
                         <configuration>
                             <artifacts>
                                 <artifact>
-                                    <file>src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.rule-immutable.cfg</file>
-                                    <type>cfg</type>
-                                    <classifier>rule-immutable-cfg</classifier>
-                                </artifact>
-                                <artifact>
-                                    <file>src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.rule-private.cfg</file>
-                                    <type>cfg</type>
-                                    <classifier>rule-private-cfg</classifier>
-                                </artifact>
-                                <artifact>
-                                    <file>src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.rule-public.cfg</file>
-                                    <type>cfg</type>
-                                    <classifier>rule-public-cfg</classifier>
-                                </artifact>
-                                <artifact>
                                     <file>src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-default.yml</file>
                                     <type>yml</type>
                                     <classifier>ruleset-default-yml</classifier>
