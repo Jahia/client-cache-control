@@ -19,5 +19,5 @@
       - "GET|HEAD;(?:/[^/]+)?/tools/.*;template:private"
       - "GET|HEAD;(?:/[^/]+)?/modules/.*;template:private"
       - "GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
-      - "GET|HEAD;(?:/[^/]+)?/home/page_with_own_rule.html;public, plop, tagada"
+      - "GET|HEAD;(?:/[^/]+)?/modules/client-cache-control-test-template/css/style.css;public, plop, tagada"
       - "GET|HEAD;/.*;template:public"
