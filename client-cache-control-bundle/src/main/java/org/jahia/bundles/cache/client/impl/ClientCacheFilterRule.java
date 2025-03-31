@@ -35,6 +35,7 @@ import java.util.regex.Pattern;
  */
 public class ClientCacheFilterRule implements ClientCacheRule, Comparable<ClientCacheFilterRule> {
 
+    public static final String RULE_PART_SEPARATOR = ";";
     public static final String TEMPLATE_PREFIX = "template:";
 
     private String ruleSetKey;
@@ -127,7 +128,7 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
 
     public static ClientCacheFilterRule deserialize(String serialized) {
         ClientCacheFilterRule entry = new ClientCacheFilterRule();
-        String[] parts = serialized.split(",");
+        String[] parts = serialized.split(RULE_PART_SEPARATOR);
         if (parts.length != 3) {
             return entry;
         }

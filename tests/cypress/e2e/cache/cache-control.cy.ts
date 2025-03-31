@@ -232,7 +232,40 @@ describe('Cache Control header tests', () => {
         });
     });
 
-    // Test case 7 : Verify that accessing Csrf module resources are flagged with an immutable strategy
+    // Test case 7 : Verify that accessing a rule with a header defined without template is working
+    it('should find cache-control header rule bases for page_rule, test case 7', () => {
+        cy.login();
+        addSimplePage(`/sites/${targetSiteKey}/home`, 'page_with_own_rule', 'Page test case 7', 'en', 'simple').then(() => {
+            addNode({parentPathOrId: `/sites/${targetSiteKey}/home/page_with_own_rule`,
+                primaryNodeType: 'jnt:contentList',
+                name: 'pagecontent'
+            }).then(() => {
+                addNode({
+                    parentPathOrId: `/sites/${targetSiteKey}/home/page_with_own_rule/pagecontent`,
+                    primaryNodeType: 'ccc:article',
+                    name: 'article',
+                    properties: [{name: 'j:view', value: 'authored'}],
+                    mixins: ['jmix:renderable']
+                });
+            });
+        }).then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
+        });
+        cy.logout();
+        cy.request({
+            url: '/en/sites/' + targetSiteKey + '/home/page_with_own_rule.html',
+            followRedirect: true,
+            failOnStatusCode: false
+        }).then(response => {
+            expect(response.status).to.eq(200);
+            expect(response.body).to.contain('Article Authored');
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
+            expect(cache).to.contains('public');
+            expect(cache).to.contains('plop');
+        });
+    });
+
     // Test case 8 : Verify that accessing /tools is flagged with a private strategy
     it('should find cache-control header private for tools, test case 8', () => {
         cy.login();
@@ -250,6 +283,8 @@ describe('Cache Control header tests', () => {
         });
         cy.logout();
     });
+
+    // Test case 9 : Verify that accessing Csrf module resources are flagged with an immutable strategy
 
     after('Clean', () => {
         deleteSite(targetSiteKey);
