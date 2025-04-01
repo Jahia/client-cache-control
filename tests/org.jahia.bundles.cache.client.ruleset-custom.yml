@@ -1,0 +1,4 @@
+name: "Custom ruleset (test)"
+description: "Custom ruleset (test)"
+rules:
+  - "GET|HEAD;(?:/[^/]+)?/modules/client-cache-control-test-template/css/style.css;public, plop, tagada"

@@ -1,19 +1,72 @@
-# Jahia Client Cache Control Bundle
+# Jahia Client Cache Control Feature
 
-This bundle manage configuration for Cache-Control header and propose optimisation for CDN integration
+This feature manage Cache-Control header for Jahia. It ensure CDN optimisation by setting adapted Cache-Control header for each resource.
 
-### Overview
+## How to build Client Cache Control Feature
 
-![Client Cache Bundle Overview](./doc/ClientCacheBundle.jpg)
+The project is composed of : 
+- an API bundle 
+- an Implementation bundle
+- a Feature module
+- a test folder containing dedicated Jahia Module for testing purpose and some cypress tests.
 
-1. The HTTP request is received and intercepted by the ClientCacheFilter
-    1. Depending on the configured ClientCacheFilterRule and the request URL some specific Cache-Control header is preset on the response
-2. The request continues over a specific Servlet or to the RenderChain
-    1. If a specific servlet take the request, it can override the header if needed (done in the CsrfServlet for exemple)
-    2. If the RenderChain is involved, when the RenderContext is created, a default 'public' ClientCachePolicy is populated in the RenderContext
-3. For each fragment involved in the rendering :
-    1. If the content is no already in cache, the AggregateCacheFilter call a method on each CacheKeyPartGenerator that is relevant for the fragment (those that don't have an empty value) to ensure is the existing part requires a 'private' level of caching. The result is a ClientCacheFragmentPolicy that is stored in the properties of the CacheEntry
-    2. If the content is already in cache, the already calculated ClientCacheFragmentPolicy is retrieved from the CacheEntry properties, avoiding a call to each key part generator again.
-4. For each fragment involved in the rendering, the AggregateCacheFilter enforce the ClientCacheFragmentPolicy on the RenderContext. If any encountered fragment policy is stringer than the already existing one, it is replaced
-5. At the end of the rendering chain, the ClientCacheRenderFilter apply the RenderContext ClientCachePolicy to the response header using the values configured in the ClientCacheService.
-6. The Client get the response with a Cache-Control header that reflect specificity of the resource.
+There is no specific build required for this feature. As it is a maven based multi-module project, just call:
+
+```bash
+mvn clean install 
+```
+
+## Installation
+
+The feature is already included in Jahia but you may want to install a specific version or upgrade it.
+
+### Install a kar file (not recommended until specific purpose)
+
+Even if not recommended, you may want to deploy the feature for development or testing purpose using the build .kar file.
+```bash
+docker cp ./client-cache-control-feature/target/client-cache-control-<version>.kar jahia:/var/jahia/karaf/deploy
+```
+Be aware that after install kar file, behavior regarding bundles can be unexpected as different can be present togethers.
+  
+### Install using provisioning
+
+Not yet available
+
+### Install using karaf 
+
+The feature elements can be updated independently.
+
+#### API's bundle
+```bash
+docker cp ./client-cache-control-api/target/org.jahia.bundles.client-cache-control-api-<version>.jar jahia:/var/jahia/karaf/deploy
+```
+
+#### Implementation's bundle
+```bash
+docker cp ./client-cache-control-bundle/target/org.jahia.bundles.client-cache-control-impl-<version>.jar jahia:/var/jahia/karaf/deploy
+```
+
+#### Configuration file
+
+You can install also configuration file or edit them directly from Jahia's Karaf /etc folder.
+
+```bash
+docker cp ./client-cache-control-bundle/target/classes/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-default.yml jahia:/var/jahia/karaf/deploy
+```
+
+## Testing
+
+Use a Jahia instance with version >= 8.2.2.0 
+
+Build and deploy the required testing module : 
+
+```bash
+cd tests/jahia-module
+mvn clean package
+docker cp ./target/client-cache-control-test-template-<version>.jar jahia:/var/jahia/modules
+cd ..
+./set-env.sh
+yarn install
+yarn run e2e:debug
+```
+
