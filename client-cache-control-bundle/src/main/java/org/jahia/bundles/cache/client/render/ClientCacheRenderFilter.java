@@ -78,6 +78,7 @@ public class ClientCacheRenderFilter extends AbstractFilter {
         String cacheControl = service.getCacheControlHeader(renderContext.getClientCachePolicy().getLevel().getValue(),
                 Map.of(ClientCacheService.CC_CUSTOM_TTL_ATTR, Integer.toString(renderContext.getClientCachePolicy().getTtl())));
         LOGGER.debug("Setting Response Cache-Control to: {}", cacheControl);
+        // Use the Force-Cache-Control header to bypass strict mode because render chain cache control modification must be enforced whatever mode is used.
         renderContext.getResponse().setHeader("Force-".concat(HttpHeaders.CACHE_CONTROL), cacheControl);
         return super.execute(previousOut, renderContext, resource, chain);
     }

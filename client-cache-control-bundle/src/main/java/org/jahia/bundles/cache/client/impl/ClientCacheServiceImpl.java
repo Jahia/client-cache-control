@@ -45,41 +45,32 @@ public class ClientCacheServiceImpl implements ClientCacheService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheServiceImpl.class);
 
-    @ObjectClassDefinition(
-            name = "org.jahia.bundles.cache.client",
-            description = "Configuration of the client cache control")
+    @ObjectClassDefinition( name = "org.jahia.bundles.cache.client", description = "%config.description", localization = "OSGI-INF/l10n/clientCache")
     public @interface Config {
 
-        @AttributeDefinition(name = "Allow Cache Control Header overrides",
-                description = "Allow the Cache-Control header value to be overridden by other component in the request/response processing chain",
+        @AttributeDefinition(name = "%mode.name", description = "%mode.description",
                 options = {
-                        @Option(label = "Lock cache header", value = "strict"),
-                        @Option(label = "Allow overrides", value = "overrides")
+                        @Option(label = "%mode.strict.label", value = "strict"),
+                        @Option(label = "%mode.overrides.label", value = "overrides")
                 })
         String mode() default "overrides";
 
-        @AttributeDefinition(name = "Intermediates Cache Duration",
-                description = "Duration while an intermediate can keep content in cache without revalidation (in seconds)")
+        @AttributeDefinition(name = "%ttl.intermediates.name", description = "%ttl.intermediates.description")
         String intermediates_ttl() default "300";
 
-        @AttributeDefinition(name = "Immutable Cache Duration",
-                description = "Duration while content is considered immutable in all caches (in seconds)")
+        @AttributeDefinition(name = "%ttl.immutable.name", description = "%ttl.immutable.description")
         String immutable_ttl() default "2678400";
 
-        @AttributeDefinition(name = "Private Cache Header Template",
-                description = "(DO NOT EDIT WITHOUT KNOWING THE IMPLICATIONS) Cache header template for private resource (client cache with revalidation and no intermediates cache)")
+        @AttributeDefinition(name = "%cacheHeaderTemplate.private.name", description = "%cacheHeaderTemplate.private.description")
         String cache_header_template_private() default "private, no-cache, no-store, must-revalidate, proxy-revalidate, max-age=0";
 
-        @AttributeDefinition(name = "Customized Cache Header Template",
-                description = "(DO NOT EDIT WITHOUT KNOWING THE IMPLICATIONS) Cache header template for rendered resource with specific content cache properties (client cache with revalidation and intermediates cache duration reflecting internal jahia cache expiration)")
+        @AttributeDefinition(name = "%cacheHeaderTemplate.custom.name", description = "%cacheHeaderTemplate.custom.description")
         String cache_header_template_custom() default "public, must-revalidate, max-age=1, s-maxage=%%jahiaClientCacheCustomTTL%%, stale-while-revalidate=15";
 
-        @AttributeDefinition(name = "Public Cache Header Template",
-                description = "(DO NOT EDIT WITHOUT KNOWING THE IMPLICATIONS) Cache header template for public dynamic resource like pages or files (client cache with systematic revalidation and intermediates cache with intermediates ttl value)")
+        @AttributeDefinition(name = "%cacheHeaderTemplate.public.name", description = "%cacheHeaderTemplate.public.description")
         String cache_header_template_public() default "public, must-revalidate, max-age=1, s-maxage=##intermediates.ttl##, stale-while-revalidate=15";
 
-        @AttributeDefinition(name = "Immutable Cache Header Template",
-                description = "(DO NOT EDIT WITHOUT KNOWING THE IMPLICATIONS)  Cache header template for immutable resources that never changes (client and intermediates caching with immutable ttl value, no revalidation needed)")
+        @AttributeDefinition(name = "%cacheHeaderTemplate.immutable.name", description = "%cacheHeaderTemplate.immutable.description")
         String cache_header_template_immutable() default "public, max-age=##immutable.ttl##, s-maxage=##immutable.ttl##, stale-while-revalidate=15, immutable";
 
     }

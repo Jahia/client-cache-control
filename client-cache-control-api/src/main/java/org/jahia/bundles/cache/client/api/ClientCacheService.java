@@ -32,7 +32,7 @@ import java.util.Map;
  */
 public interface ClientCacheService {
 
-    String CC_POLICY_ATTR = "jahiaClientCachePolicy";
+    String CC_SET_ATTR = "jahiaCacheControlSet";
     String CC_ORIGINAL_REQUEST_URI_ATTR = "jahiaOriginalRequestURI";
     String CC_CUSTOM_TTL_ATTR = "jahiaClientCacheCustomTTL";
 

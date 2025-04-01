@@ -77,21 +77,32 @@ public class ClientCacheFilter extends AbstractServletFilter {
         ClientCacheResponseWrapper hResponseWrapper = new ClientCacheResponseWrapper((HttpServletResponse) response);
         LOGGER.debug("{} {} Entering Cache Control preset filter", hRequest.getMethod(), hRequest.getRequestURI());
         hRequest.setAttribute(ClientCacheServiceImpl.CC_ORIGINAL_REQUEST_URI_ATTR, hRequest.getRequestURI());
+        boolean defaultPreset = false;
         String presetCacheControlValue = service.getCacheControlHeader(hRequest.getMethod(), hRequest.getRequestURI(), Collections.EMPTY_MAP);
         if (presetCacheControlValue.isEmpty()) {
-            presetCacheControlValue = service.getCacheControlHeader(ClientCacheFilterTemplate.DEFAULT, Collections.EMPTY_MAP);
-            hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
-            LOGGER.debug("[{}] Predefining DEFAULT Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);
+            if (hResponseWrapper.containsHeader(HttpHeaders.CACHE_CONTROL)) {
+                LOGGER.warn("[{}] Cache-Control header was already set to value, do not change: [{}]", hRequest.getRequestURI(), hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL));
+            } else {
+                // Using the default preset when service did not find rule for that request.
+                presetCacheControlValue = service.getCacheControlHeader(ClientCacheFilterTemplate.DEFAULT, Collections.EMPTY_MAP);
+                hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
+                defaultPreset = true;
+                LOGGER.debug("[{}] Predefining DEFAULT Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);
+            }
         } else {
             if (hResponseWrapper.containsHeader(HttpHeaders.CACHE_CONTROL)) {
-                LOGGER.warn("[{}] Cache-Control header already set to value: [{}]", hRequest.getRequestURI(), hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL));
+                LOGGER.warn("[{}] Cache-Control header was already set to value, updating anyway: [{}]", hRequest.getRequestURI(), hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL));
             }
             hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
-            hResponseWrapper.setReadOnlyFilteredHeaders(service.getMode().equals(ClientCacheMode.STRICT));
-            LOGGER.debug("[{}] Predefining and Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);
+            if (service.getMode().equals(ClientCacheMode.STRICT)) {
+                // Strict mode prevent any further modification of cache headers, even if response.reset() is called).
+                hResponseWrapper.setReadOnlyFilteredHeaders(true);
+                hRequest.setAttribute(ClientCacheService.CC_SET_ATTR, "done"); // Most legacy rewrite rules use that attribute as condition.
+            }
+            LOGGER.debug("[{}] Predefining Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);
         }
         chain.doFilter(request, hResponseWrapper);
-        if (!presetCacheControlValue.equals(hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL))) {
+        if (!defaultPreset && !presetCacheControlValue.equals(hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL))) {
             String currentCacheControlValue = hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL) != null ? hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL) : "Header Not Set";
             if (service.getMode().equals(ClientCacheMode.ALLOW_OVERRIDES)) {
                 LOGGER.debug("[{}] Cache-Control header overridden by other component, current value: [{}] was preset to value: [{}]", hRequest.getRequestURI(), currentCacheControlValue, presetCacheControlValue);

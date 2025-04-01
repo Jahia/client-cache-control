@@ -1,5 +1,18 @@
-name: 'Default ruleset'
-description: 'Default ruleset'
+# Ruleset configuration file
+#
+# This allows to setup Cache-Control header rules for incoming requests
+# Each rules is composed of 3 parts separated by a semicolon.
+#  1. a list of HTTP methods separated by a pipe character  (like GET|HEAD)
+#  2. a regular expression to match the request URI
+#  3. a template name to apply to the response or a directly specified header value
+#
+# Templates are defined in the service configuration file, there is four policies (private, public, custom and immutable)
+# See dedicated documentation for more details
+#
+# Modules can provide other ruleset configuration files, the rules are merged together and ordered by matching priority by the service.
+#
+name: "Default ruleset"
+description: "Default ruleset"
 rules:
   - "GET|HEAD;(?:/[^/]+)?/files/.*;template:public"
   - "GET|HEAD;(?:/[^/]+)?/repository/.*;template:public"
@@ -14,4 +27,4 @@ rules:
   - "GET|HEAD;(?:/[^/]+)?/modules/.*;template:private"
   - "GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
   - "GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
-  - "GET|HEAD;/.*;template:public"
+  - "POST|DELETE|PATCH;.*;template:private"

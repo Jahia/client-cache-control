@@ -36,7 +36,7 @@ public class ClientCacheFilterTemplate implements ClientCacheTemplate {
     public static final String PUBLIC = "public";
     public static final String CUSTOM = "custom";
     public static final String IMMUTABLE = "immutable";
-    public static final String DEFAULT = PRIVATE;
+    public static final String DEFAULT = IMMUTABLE;
 
     public static final ClientCacheFilterTemplate EMPTY = new ClientCacheFilterTemplate("empty", "");
 
