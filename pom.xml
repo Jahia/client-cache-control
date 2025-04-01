@@ -95,17 +95,6 @@
         </repository>
     </repositories>
 
-    <distributionManagement>
-        <repository>
-            <id>jahia-enterprise-customers-releases</id>
-            <url>https://devtools.jahia.com/nexus/content/repositories/jahia-enterprise-customers-releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>jahia-enterprise-customers-snapshots</id>
-            <url>https://devtools.jahia.com/nexus/content/repositories/jahia-enterprise-customers-snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <modules>
         <module>client-cache-control-api</module>
         <module>client-cache-control-bundle</module>
