@@ -1,2 +1,23 @@
 - addMavenRepository: 'https://store.jahia.com/nexus/content/repositories/jahia-public-app-store@id=JahiaStore'
 - addMavenRepository: 'https://devtools.jahia.com/nexus/content/groups/public/@snapshots@noreleases@id=JahiaSnapshot'
+
+- editConfiguration: 'org.jahia.bundles.cache.client.ruleset'
+  configIdentifier: 'default'
+  properties:
+    name: 'Default ruleset (test)'
+    description: 'Default ruleset (test)'
+    rules:
+      - "GET|HEAD;(?:/[^/]+)?/files/.*;template:public"
+      - "GET|HEAD;(?:/[^/]+)?/repository/.*;template:public"
+      - "GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"
+      - "GET|HEAD;(?:/[^/]+)?/welcome.*;template:private"
+      - "GET|HEAD;(?:/[^/]+)?/start;template:private"
+      - "GET|HEAD;(?:/[^/]+)?/validateTicket;template:private"
+      - "GET|HEAD;(?:/[^/]+)?/administration.*;template:private"
+      - "GET|HEAD;(?:/[^/]+)?/cms/.*;template:private"
+      - "GET|HEAD;(?:/[^/]+)?/engines/.*\\.jsp(\\?.*)?;template:private"
+      - "GET|HEAD;(?:/[^/]+)?/tools/.*;template:private"
+      - "GET|HEAD;(?:/[^/]+)?/modules/.*;template:private"
+      - "GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
+      - "GET|HEAD;(?:/[^/]+)?/modules/client-cache-control-test-template/css/style.css;public, plop, tagada"
+      - "GET|HEAD;/.*;template:public"

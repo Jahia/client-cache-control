@@ -3,7 +3,7 @@ import {addSimplePage} from '../../utils/Utils';
 
 // Should be reactivated and completed when PR https://github.com/Jahia/jahia-private/pull/2353 will be merged
 //   See -> https://jira.jahia.org/browse/BACKLOG-23569
-describe.skip('Cache Control header tests', () => {
+describe('Cache Control header tests', () => {
     const targetSiteKey = 'cacheTestSite';
     before('Create target test site', () => {
         cy.log('Create site ' + targetSiteKey + ' for cache-control tests');
@@ -40,7 +40,8 @@ describe.skip('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('bodywrapper');
-            const cache = response.headers['Cache-Control'];
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
             expect(cache).to.contains('private');
             expect(cache).to.contains('no-cache');
             expect(cache).to.contains('no-store');
@@ -55,7 +56,8 @@ describe.skip('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('bodywrapper');
-            const cache = response.headers['Cache-Control'];
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
             expect(cache).to.contains('max-age=1');
@@ -92,7 +94,8 @@ describe.skip('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Private');
-            const cache = response.headers['Cache-Control'];
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
             expect(cache).to.contains('private');
             expect(cache).to.contains('no-cache');
             expect(cache).to.contains('no-store');
@@ -128,7 +131,8 @@ describe.skip('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Authored');
-            const cache = response.headers['Cache-Control'];
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
             expect(cache).to.contains('max-age=1');
@@ -139,7 +143,7 @@ describe.skip('Cache Control header tests', () => {
 
     // Test case 4 : Verify that accessing files (like images) are flagged with a public strategy
     // Test case 5 : Verify that accessing modules resources content are flagged with a public strategy
-    it('should find cache-control header in module resources test case 4', () => {
+    it('should find cache-control header in module resources test case 5', () => {
         cy.login();
         addSimplePage(`/sites/${targetSiteKey}/home`, 'page3', 'Page test case 3', 'en', 'simple').then(() => {
             addNode({parentPathOrId: `/sites/${targetSiteKey}/home/page3`,
@@ -166,7 +170,8 @@ describe.skip('Cache Control header tests', () => {
         }).then(response => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Authored');
-            const cache = response.headers['Cache-Control'];
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
             expect(cache).to.contains('max-age=1');
@@ -205,25 +210,63 @@ describe.skip('Cache Control header tests', () => {
             expect(response.status).to.eq(200);
             expect(response.body).to.contain('Article Authored');
             cy.log('The page should contains Cache-Control header for custom content when not logged');
-            cy.get('link#staticAssetCSS0').invoke('attr', 'href').then(href => {
-                cy.log('The css file should contains Cache-Control header for immutable content when not logged, visiting: ' + href);
-                // eslint-disable-next-line max-nested-callbacks
-                cy.request(href).then(response2 => {
+            const cssHrefMatch = response.body.match(/<link[^>]+id="staticAssetCSS0"[^>]+href="([^"]+)"/);
+
+            if (cssHrefMatch) {
+                const cssHref = cssHrefMatch[1]; // L'URL du CSS
+                cy.log('The CSS file should contain Cache-Control header for immutable content when not logged, visiting: ' + cssHref);
+
+                cy.request(cssHref).then(response2 => {
                     expect(response2.status).to.eq(200);
-                    const cache = response.headers['Cache-Control'];
-                    expect(cache).to.contains('public');
-                    expect(cache).to.contains('max-age=');
-                    expect(cache).to.contains('s-maxage=60');
-                    expect(cache).to.contains('immutable');
+                    expect(response2.headers).to.have.property('cache-control');
+                    const cache = response2.headers['cache-control'];
+                    expect(cache).to.include('public');
+                    expect(cache).to.include('max-age=2678400');
+                    expect(cache).to.include('s-maxage=2678400');
+                    expect(cache).to.contains('stale-while-revalidate=15');
+                    expect(cache).to.include('immutable');
                 });
-            });
+            } else {
+                throw new Error('CSS link with id "staticAssetCSS0" not found in the response body');
+            }
         });
     });
-    // Test case 7 : Verify that accessing Csrf module resources are flagged with an immutable strategy
+
+    // Test case 7 : Verify that accessing a rule with a header defined without template is working
+    it('should find cache-control header rule bases for a stylesheet, test case 7', () => {
+        cy.logout();
+        cy.request({
+            url: '/modules/client-cache-control-test-template/css/style.css',
+            followRedirect: true,
+            failOnStatusCode: false
+        }).then(response => {
+            expect(response.status).to.eq(200);
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
+            expect(cache).to.contains('public');
+            expect(cache).to.contains('plop');
+        });
+    });
+
     // Test case 8 : Verify that accessing /tools is flagged with a private strategy
-    // Test case 9 : Verify that accessing /cms/* (other than /cms/render) are flagged with a private strategy
-    // Test case 10 : Verify that accessing /engines/*.jsp element are flagged with a private strategy
-    // Test case 11 : Verify that accessing /administration/* JSP element are flagged with a private strategy
+    it('should find cache-control header private for tools, test case 8', () => {
+        cy.login();
+        cy.request({
+            url: '/tools',
+            followRedirect: true,
+            failOnStatusCode: false
+        }).then(response => {
+            expect(response.status).to.eq(200);
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
+            expect(cache).to.contains('no-cache');
+            expect(cache).to.contains('no-store');
+            expect(cache).to.contains('max-age=0');
+        });
+        cy.logout();
+    });
+
+    // Test case 9 : Verify that accessing Csrf module resources are flagged with an immutable strategy
 
     after('Clean', () => {
         deleteSite(targetSiteKey);

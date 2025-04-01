@@ -1,0 +1,2 @@
+- uninstallFeature: 'client-cache-control'
+- uninstallBundle: 'org.jahia.bundles.client-cache-control'

@@ -17,8 +17,6 @@ echo " JAHIA_PROCESSING_URL: ${JAHIA_PROCESSING_URL}"
 echo " JAHIA_PORT_KARAF: ${JAHIA_PORT_KARAF}"
 echo " JAHIA_USERNAME: ${JAHIA_USERNAME}"
 echo " JAHIA_PASSWORD: ${JAHIA_PASSWORD}"
-echo " JAHIA_USERNAME_TOOLS: ${JAHIA_USERNAME_TOOLS}"
-echo " JAHIA_PASSWORD_TOOLS: ${JAHIA_PASSWORD_TOOLS}"
 echo " SUPER_USER_PASSWORD: ${SUPER_USER_PASSWORD}"
 echo " TIMEZONE: ${TIMEZONE}"
 
@@ -57,26 +55,19 @@ else
   MANIFEST="curl-manifest"
 fi
 
-echo "$(date +'%d %B %Y - %k:%M') == Executing manifest: ${MANIFEST} =="
-curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script="@./run-artifacts/${MANIFEST};type=text/yaml" $(find assets -type f | sed -E 's/^(.+)$/--form file=\"@\1\"/' | xargs)
-echo
-if [[ $? -eq 1 ]]; then
-  echo "$(date +'%d %B %Y - %k:%M') == PROVISIONING FAILURE - EXITING SCRIPT, NOT RUNNING THE TESTS"
-  echo "failure" > ./results/test_failure
-  exit 1
-fi
-
-#Snapshot exists which means we want to unistall existing client-cache-control and install the snapshot
+#Snapshot exists which means we want to uninstall existing client-cache-control and install the snapshot
 if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
     echo "Will uninstall existing client-cache-control and replace it with supplied snapshot"
     curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
-    #TODO: this is a workaround due to the fact that uninstall of bundle (not jahia module) is not replicated to other nodes see: https://jira.jahia.org/browse/BACKLOG-23361
+    #TODO We uninstall the feature from the other nodes as well, check that uninstall feature does not work on all nodes in the cluster
     echo "Uninstalling client-cache-control from others nodes if cluster is enabled"
     if [[ "${JAHIA_CLUSTER_ENABLED}" == "true" ]]; then
         curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-a:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
         curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-b:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control"}]'
     fi
 
+    #TODO We install the bundle instead of the feature because no feature provisioning is available for now
+    # config files are provisioned in provisioning-manifest-snapshot.yaml (to remove once feature provisioning is available)
     cd artifacts/
     echo "$(date +'%d %B %Y - %k:%M') == Content of the artifacts/ folder"
     ls -lah
@@ -90,6 +81,15 @@ if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
     done
 
     cd ..
+fi
+
+echo "$(date +'%d %B %Y - %k:%M') == Executing manifest: ${MANIFEST} =="
+curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script="@./run-artifacts/${MANIFEST};type=text/yaml" $(find assets -type f | sed -E 's/^(.+)$/--form file=\"@\1\"/' | xargs)
+echo
+if [[ $? -eq 1 ]]; then
+  echo "$(date +'%d %B %Y - %k:%M') == PROVISIONING FAILURE - EXITING SCRIPT, NOT RUNNING THE TESTS"
+  echo "failure" > ./results/test_failure
+  exit 1
 fi
 
 echo "$(date +'%d %B %Y - %k:%M') == Fetching the list of installed modules =="
