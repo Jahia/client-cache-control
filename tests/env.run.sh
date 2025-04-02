@@ -60,7 +60,8 @@ if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
     echo "Will uninstall existing client-cache-control and replace it with supplied snapshot"
     curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control-impl"}]'
     curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control-api"}]'
-    #TODO We uninstall the feature from the other nodes as well, check that uninstall feature does not work on all nodes in the cluster
+    #TODO: this is a workaround due to the fact that uninstall of bundle (not jahia module) is not replicated to other nodes see: https://jira.jahia.org/browse/BACKLOG-23361
+    #TODO We uninstall the bundle instead of the feature because no feature provisioning is available for now
     echo "Uninstalling client-cache-control from others nodes if cluster is enabled"
     if [[ "${JAHIA_CLUSTER_ENABLED}" == "true" ]]; then
         curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-a:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control-impl"}]'
