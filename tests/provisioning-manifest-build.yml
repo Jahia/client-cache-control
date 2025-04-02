@@ -4,3 +4,23 @@
 - editConfiguration: 'org.jahia.bundles.cache.client'
   properties:
     mode: 'strict'
+
+- editConfiguration: 'org.jahia.bundles.cache.client.ruleset'
+  configIdentifier: 'default'
+  properties:
+    name: 'Default ruleset (test)'
+    description: 'Default ruleset (test)'
+    rules[0]: "GET|HEAD;(?:/[^/]+)?/files/.*;template:public"
+    rules[1]: "GET|HEAD;(?:/[^/]+)?/repository/.*;template:public"
+    rules[2]: "GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"
+    rules[3]: "GET|HEAD;(?:/[^/]+)?/modules/.*;template:public"
+    rules[4]: "GET|HEAD;(?:/[^/]+)?/welcome.*;template:private"
+    rules[5]: "GET|HEAD;(?:/[^/]+)?/start;template:private"
+    rules[6]: "GET|HEAD;(?:/[^/]+)?/validateTicket;template:private"
+    rules[7]: "GET|HEAD;(?:/[^/]+)?/administration.*;template:private"
+    rules[8]: "GET|HEAD;(?:/[^/]+)?/cms/.*;template:private"
+    rules[9]: "GET|HEAD;(?:/[^/]+)?/engines/.*\\.jsp(\\?.*)?;template:private"
+    rules[10]: "GET|HEAD;(?:/[^/]+)?/tools/.*;template:private"
+    rules[11]: "GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
+    rules[12]: "GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
+    rules[13]: "GET|HEAD;/.*;template:private"
