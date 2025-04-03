@@ -72,7 +72,7 @@ if compgen -G "./artifacts/org.jahia.bundles.client-cache-control-*-SNAPSHOT.jar
 fi
 
 # jar present in artifacts folder are installed (to install also test module and if needed the previously built bundle/feature when testing in a branch)
-cd artifacts/
+cd artifacts/ || echo "$(date +'%d %B %Y - %k:%M') == No artifacts folder found, skipping module installation"
 echo "$(date +'%d %B %Y - %k:%M') == Content of the artifacts/ folder"
 ls -lah
 echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Will start submitting files"
@@ -80,12 +80,10 @@ for file in $(ls -1 *-SNAPSHOT.jar | sort -n)
 do
   echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Submitting module from: $file =="
   curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"installAndStartBundle":"'"$file"'", "forceUpdate":true}]' --form file=@$file
-  sleep 5;
   echo
   echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Module submitted =="
 done
-
-sleep 60;
+cd ..
 
 echo "$(date +'%d %B %Y - %k:%M') == Executing manifest: ${MANIFEST} =="
 curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script="@./run-artifacts/${MANIFEST};type=text/yaml"
