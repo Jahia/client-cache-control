@@ -21,7 +21,7 @@
     rules[12]: "GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
     rules[13]: "GET|HEAD;/.*;template:public"
 
-- editConfiguration: 'org.jahia.bundles.cache.client.ruleset'
+- installConfiguration: 'org.jahia.bundles.cache.client.ruleset'
   configIdentifier: 'custom'
   properties:
     name: 'Custom ruleset (test)'
