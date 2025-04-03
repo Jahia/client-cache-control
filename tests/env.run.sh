@@ -85,6 +85,8 @@ do
 done
 cd ..
 
+sleep 60;
+
 echo "$(date +'%d %B %Y - %k:%M') == Executing manifest: ${MANIFEST} =="
 curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script="@./run-artifacts/${MANIFEST};type=text/yaml"
 echo
