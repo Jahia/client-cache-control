@@ -85,6 +85,8 @@ do
   echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Module submitted =="
 done
 
+sleep 60;
+
 echo "$(date +'%d %B %Y - %k:%M') == Executing manifest: ${MANIFEST} =="
 curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script="@./run-artifacts/${MANIFEST};type=text/yaml" $(find assets -type f | sed -E 's/^(.+)$/--form file=\"@\1\"/' | xargs)
 echo
