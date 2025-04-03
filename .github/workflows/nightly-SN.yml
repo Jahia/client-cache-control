@@ -15,5 +15,5 @@ jobs:
       testrail_project: Jahia Client Cache Control Bundle
       pagerduty_incident_service: client-cache-control-JahiaSN
       provisioning_manifest: provisioning-manifest-snapshot.yml
-      artifact_prefix: client-cache-control
+      artifact_prefix: client-cache-control-nightly-sn
       module_branch: ${{ github.ref }}

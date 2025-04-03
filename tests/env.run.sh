@@ -55,8 +55,8 @@ else
   MANIFEST="curl-manifest"
 fi
 
-#Snapshot exists which means we want to uninstall existing client-cache-control and install the snapshot
-if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
+# Snapshot bundle/feature jar exists in artifacts folder which means we want to uninstall jahia builtin client-cache-control and install the snapshot version
+if compgen -G "./artifacts/org.jahia.bundles.client-cache-control-*-SNAPSHOT.jar" > /dev/null; then
     echo "Will uninstall existing client-cache-control and replace it with supplied snapshot"
     curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control-impl"}]'
     curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control-api"}]'
@@ -69,23 +69,21 @@ if compgen -G "./artifacts/*-SNAPSHOT.jar" > /dev/null; then
         curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-b:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control-api"}]'
         curl -u root:${SUPER_USER_PASSWORD} -X POST http://jahia-browsing-b:8080/modules/api/provisioning --form script='[{"uninstallBundle":"org.jahia.bundles.client-cache-control-api"}]'
     fi
-
-    #TODO We install the bundle instead of the feature because no feature provisioning is available for now
-    # config files are provisioned in provisioning-manifest-snapshot.yaml (to remove once feature provisioning is available)
-    cd artifacts/
-    echo "$(date +'%d %B %Y - %k:%M') == Content of the artifacts/ folder"
-    ls -lah
-    echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Will start submitting files"
-    for file in $(ls -1 *-SNAPSHOT.jar | sort -n)
-    do
-      echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Submitting module from: $file =="
-      curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"installAndStartBundle":"'"$file"'", "forceUpdate":true}]' --form file=@$file
-      echo
-      echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Module submitted =="
-    done
-
-    cd ..
 fi
+
+# jar present in artifacts folder are installed (to install also test module and if needed the previously built bundle/feature when testing in a branch)
+cd artifacts/
+echo "$(date +'%d %B %Y - %k:%M') == Content of the artifacts/ folder"
+ls -lah
+echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Will start submitting files"
+for file in $(ls -1 *-SNAPSHOT.jar | sort -n)
+do
+  echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Submitting module from: $file =="
+  curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script='[{"installAndStartBundle":"'"$file"'", "forceUpdate":true}]' --form file=@$file
+  echo
+  echo "$(date +'%d %B %Y - %k:%M') [MODULE_INSTALL] == Module submitted =="
+done
+
 
 echo "$(date +'%d %B %Y - %k:%M') == Executing manifest: ${MANIFEST} =="
 curl -u root:${SUPER_USER_PASSWORD} -X POST ${JAHIA_URL}/modules/api/provisioning --form script="@./run-artifacts/${MANIFEST};type=text/yaml" $(find assets -type f | sed -E 's/^(.+)$/--form file=\"@\1\"/' | xargs)
