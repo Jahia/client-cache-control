@@ -6,10 +6,10 @@
   properties:
     name: 'Default ruleset (test)'
     description: 'Default ruleset (test)'
-    rules[0]: "GET|HEAD;(?:/[^/]+)?/files/.*;template:public"
-    rules[1]: "GET|HEAD;(?:/[^/]+)?/repository/.*;template:public"
+    rules[0]: "GET|HEAD;(?:/[^/]+)?/files/.*;template:public-medium"
+    rules[1]: "GET|HEAD;(?:/[^/]+)?/repository/.*;template:public-medium"
     rules[2]: "GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"
-    rules[3]: "GET|HEAD;(?:/[^/]+)?/modules/.*;template:public"
+    rules[3]: "GET|HEAD;(?:/[^/]+)?/modules/.*;template:public-medium"
     rules[4]: "GET|HEAD;(?:/[^/]+)?/welcome.*;template:private"
     rules[5]: "GET|HEAD;(?:/[^/]+)?/start;template:private"
     rules[6]: "GET|HEAD;(?:/[^/]+)?/validateTicket;template:private"
@@ -19,7 +19,7 @@
     rules[10]: "GET|HEAD;(?:/[^/]+)?/tools/.*;template:private"
     rules[11]: "GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
     rules[12]: "GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
-    rules[13]: "GET|HEAD;/.*;template:public"
+    rules[13]: "GET|HEAD;/.*;template:public-medium"
 
 - editConfiguration: 'org.jahia.bundles.cache.client.ruleset'
   configIdentifier: 'custom'

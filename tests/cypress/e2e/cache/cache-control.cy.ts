@@ -61,7 +61,7 @@ describe('Cache Control header tests', () => {
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
             expect(cache).to.contains('max-age=1');
-            expect(cache).to.contains('s-maxage=300');
+            expect(cache).to.contains('s-maxage=60');
             expect(cache).to.contains('stale-while-revalidate=15');
         });
     });
@@ -136,12 +136,30 @@ describe('Cache Control header tests', () => {
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
             expect(cache).to.contains('max-age=1');
-            expect(cache).to.contains('s-maxage=60');
+            expect(cache).to.contains('s-maxage=42');
             expect(cache).to.contains('stale-while-revalidate=15');
         });
     });
 
     // Test case 4 : Verify that accessing files (like images) are flagged with a public strategy
+    it('should find cache-control header rule bases for a module embedded content, media library content, test case 4', () => {
+        cy.logout();
+        cy.request({
+            url: '/modules/client-cache-control-test-template/css/style2.css',
+            followRedirect: true,
+            failOnStatusCode: false
+        }).then(response => {
+            expect(response.status).to.eq(200);
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
+            expect(cache).to.contains('public');
+            expect(cache).to.contains('must-revalidate');
+            expect(cache).to.contains('max-age=1');
+            expect(cache).to.contains('s-maxage=600');
+            expect(cache).to.contains('stale-while-revalidate=15');
+        });
+    });
+
     // Test case 5 : Verify that accessing modules resources content are flagged with a public strategy
     it('should find cache-control header in module resources test case 5', () => {
         cy.login();
@@ -175,7 +193,7 @@ describe('Cache Control header tests', () => {
             expect(cache).to.contains('public');
             expect(cache).to.contains('must-revalidate');
             expect(cache).to.contains('max-age=1');
-            expect(cache).to.contains('s-maxage=60');
+            expect(cache).to.contains('s-maxage=42');
             expect(cache).to.contains('stale-while-revalidate=15');
         });
     });

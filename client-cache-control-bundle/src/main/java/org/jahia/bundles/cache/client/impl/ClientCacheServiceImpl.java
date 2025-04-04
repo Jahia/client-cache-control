@@ -55,8 +55,11 @@ public class ClientCacheServiceImpl implements ClientCacheService {
                 })
         String mode() default "overrides";
 
-        @AttributeDefinition(name = "%ttl.intermediates.name", description = "%ttl.intermediates.description")
-        String intermediates_ttl() default "300";
+        @AttributeDefinition(name = "%ttl.short.name", description = "%ttl.short.description")
+        String short_ttl() default "60";
+
+        @AttributeDefinition(name = "%ttl.medium.name", description = "%ttl.medium.description")
+        String medium_ttl() default "600";
 
         @AttributeDefinition(name = "%ttl.immutable.name", description = "%ttl.immutable.description")
         String immutable_ttl() default "2678400";
@@ -68,7 +71,10 @@ public class ClientCacheServiceImpl implements ClientCacheService {
         String cache_header_template_custom() default "public, must-revalidate, max-age=1, s-maxage=%%jahiaClientCacheCustomTTL%%, stale-while-revalidate=15";
 
         @AttributeDefinition(name = "%cacheHeaderTemplate.public.name", description = "%cacheHeaderTemplate.public.description")
-        String cache_header_template_public() default "public, must-revalidate, max-age=1, s-maxage=##intermediates.ttl##, stale-while-revalidate=15";
+        String cache_header_template_public() default "public, must-revalidate, max-age=1, s-maxage=##short.ttl##, stale-while-revalidate=15";
+
+        @AttributeDefinition(name = "%cacheHeaderTemplate.public.medium.name", description = "%cacheHeaderTemplate.public.medium.description")
+        String cache_header_template_public_medium() default "public, must-revalidate, max-age=1, s-maxage=##medium.ttl##, stale-while-revalidate=15";
 
         @AttributeDefinition(name = "%cacheHeaderTemplate.immutable.name", description = "%cacheHeaderTemplate.immutable.description")
         String cache_header_template_immutable() default "public, max-age=##immutable.ttl##, s-maxage=##immutable.ttl##, stale-while-revalidate=15, immutable";
@@ -134,12 +140,12 @@ public class ClientCacheServiceImpl implements ClientCacheService {
                 .filter(rule -> rule.getMethods().contains(method) && rule.getUrlPattern().matcher(uri).matches()).findFirst();
         if (mRule.isPresent()) {
             if (mRule.get().getHeaderValue() != null) {
-                LOGGER.debug("Rule {} matched for method: {} and uri: {}, returning header value: {}", mRule.get(), method, uri, mRule.get().getHeaderValue());
+                LOGGER.debug("[{} - {}] matched with rule {}, returning header: {}", method, uri, mRule.get(), mRule.get().getHeaderValue());
                 return mRule.get().getHeaderValue();
             }
             if (mRule.get().getHeaderTemplate() != null) {
                 String headerValue = cacheControlHeaderTemplates.getOrDefault(mRule.get().getHeaderTemplate(), ClientCacheFilterTemplate.EMPTY).getFilteredTemplate(params);
-                LOGGER.debug("Rule {} matched for method: {} and uri: {}, returning header value: {}", mRule.get(), method, uri, headerValue);
+                LOGGER.debug("[{} - {}] matched with rule {}, returning header: {}", uri, method, mRule.get(), headerValue);
                 return headerValue;
             }
         }
@@ -156,6 +162,8 @@ public class ClientCacheServiceImpl implements ClientCacheService {
         Map<String, ClientCacheFilterTemplate> values = new HashMap<>();
         values.put(ClientCacheFilterTemplate.PRIVATE,
                 new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PRIVATE, configureCacheControlHeaderTemplate(config.cache_header_template_private(), config)));
+        values.put(ClientCacheFilterTemplate.PUBLIC_MEDIUM,
+                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PUBLIC_MEDIUM, configureCacheControlHeaderTemplate(config.cache_header_template_public_medium(), config)));
         values.put(ClientCacheFilterTemplate.PUBLIC,
                 new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PUBLIC, configureCacheControlHeaderTemplate(config.cache_header_template_public(), config)));
         values.put(ClientCacheFilterTemplate.CUSTOM,
@@ -167,7 +175,8 @@ public class ClientCacheServiceImpl implements ClientCacheService {
 
     private String configureCacheControlHeaderTemplate(String value, Config config) {
         String configuredValue = value;
-        configuredValue = configuredValue.replace("##intermediates.ttl##", config.intermediates_ttl());
+        configuredValue = configuredValue.replace("##short.ttl##", config.short_ttl());
+        configuredValue = configuredValue.replace("##medium.ttl##", config.medium_ttl());
         configuredValue = configuredValue.replace("##immutable.ttl##", config.immutable_ttl());
         return configuredValue;
     }
