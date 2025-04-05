@@ -103,7 +103,7 @@ describe('Cache Control header tests', () => {
         });
     });
 
-    // Test case 3 : Verify that a rendered page with an article authored (use of cache.expiration=60) is flagged with a custom strategy when accessed as guest
+    // Test case 3 : Verify that a rendered page with an article authored (use of cache.expiration=42) is flagged with a custom strategy when accessed as guest
     it('should find cache-control header according to render client policy test case 3', () => {
         cy.login();
         addSimplePage(`/sites/${targetSiteKey}/home`, 'page3', 'Page test case 3', 'en', 'simple').then(() => {
@@ -142,7 +142,10 @@ describe('Cache Control header tests', () => {
     });
 
     // Test case 4 : Verify that accessing files (like images) are flagged with a public strategy
-    it('should find cache-control header rule bases for a module embedded content, media library content, test case 4', () => {
+
+    // Test case 5 : Verify that accessing modules resources content are flagged with a public strategy
+    //   -> Use a request to simpleTemplateSet module for /css/style2.css
+    it('should find cache-control header rule bases for a module embedded content, test case 5', () => {
         cy.logout();
         cy.request({
             url: '/modules/client-cache-control-test-template/css/style2.css',
@@ -160,45 +163,6 @@ describe('Cache Control header tests', () => {
         });
     });
 
-    // Test case 5 : Verify that accessing modules resources content are flagged with a public strategy
-    it('should find cache-control header in module resources test case 5', () => {
-        cy.login();
-        addSimplePage(`/sites/${targetSiteKey}/home`, 'page3', 'Page test case 3', 'en', 'simple').then(() => {
-            addNode({parentPathOrId: `/sites/${targetSiteKey}/home/page3`,
-                primaryNodeType: 'jnt:contentList',
-                name: 'pagecontent'
-            }).then(() => {
-                addNode({
-                    parentPathOrId: `/sites/${targetSiteKey}/home/page3/pagecontent`,
-                    primaryNodeType: 'ccc:article',
-                    name: 'article',
-                    properties: [{name: 'j:view', value: 'authored'}],
-                    mixins: ['jmix:renderable']
-                });
-            });
-        }).then(() => {
-            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/home');
-        });
-        cy.log('The page should contains Cache-Control header for custom content when not logged');
-        cy.logout();
-        cy.request({
-            url: '/en/sites/' + targetSiteKey + '/home/page3.html',
-            followRedirect: true,
-            failOnStatusCode: false
-        }).then(response => {
-            expect(response.status).to.eq(200);
-            expect(response.body).to.contain('Article Authored');
-            expect(response.headers).to.have.property('cache-control');
-            const cache = response.headers['cache-control'];
-            expect(cache).to.contains('public');
-            expect(cache).to.contains('must-revalidate');
-            expect(cache).to.contains('max-age=1');
-            expect(cache).to.contains('s-maxage=42');
-            expect(cache).to.contains('stale-while-revalidate=15');
-        });
-    });
-
-    //   -> Use a request to simpleTemplateSet module for /javascript/js1.js
     // Test case 6 : Verify that accessing generated resources are flagged with an immutable strategy
     //   ->  use a page that contains resources, parse injected css or js and access the resource directly to check header
     it('should find cache-control header immutable for generated resources, test case 6', () => {
@@ -251,6 +215,8 @@ describe('Cache Control header tests', () => {
     });
 
     // Test case 7 : Verify that accessing a rule with a header defined without template is working
+    //   -> Use a request to simpleTemplateSet module for /css/style.css
+    //   a custom rule is defined in a dedicated ruleset
     it('should find cache-control header rule bases for a stylesheet, test case 7', () => {
         cy.logout();
         cy.request({
