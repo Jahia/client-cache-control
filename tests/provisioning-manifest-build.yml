@@ -7,12 +7,6 @@
 - editConfiguration: 'org.jahia.bundles.cache.client'
   properties:
     mode: 'strict'
-    intermediates.ttl: '300'
-    immutable.ttl: '2678400'
-    cache.header.template.private: 'private, no-cache, no-store, must-revalidate, proxy-revalidate, max-age=0'
-    cache.header.template.public: 'public, must-revalidate, max-age=1, s-maxage=%%jahiaClientCacheCustomTTL%%, stale-while-revalidate=15'
-    cache.header.template.custom: 'public, must-revalidate, max-age=1, s-maxage=##intermediates.ttl##, stale-while-revalidate=15'
-    cache.header.template.immutable: 'public, max-age=##immutable.ttl##, s-maxage=##immutable.ttl##, stale-while-revalidate=15, immutable'
 
 - editConfiguration: 'org.jahia.bundles.cache.client.ruleset'
   configIdentifier: 'custom'
