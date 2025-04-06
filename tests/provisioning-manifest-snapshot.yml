@@ -19,7 +19,7 @@
     rules[10]: "GET|HEAD;(?:/[^/]+)?/tools/.*;template:private"
     rules[11]: "GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
     rules[12]: "GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
-    rules[13]: "GET|HEAD;/.*;template:public-medium"
+    rules[13]: "POST|DELETE|PATCH;.*;template:private"
 
 - editConfiguration: 'org.jahia.bundles.cache.client.ruleset'
   configIdentifier: 'custom'
