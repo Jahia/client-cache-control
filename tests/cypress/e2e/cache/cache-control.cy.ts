@@ -144,10 +144,9 @@ describe('Cache Control header tests', () => {
     // Test case 4 : Verify that accessing files (like images) are flagged with a public strategy
     it('TestCase 4: for images in media library, should find public cache-control with medium ttl value s-maxage=600', () => {
         cy.login();
-        uploadFile('clientCache/jahia-logo.jpg', `/sites/${targetSiteKey}/files`, 'jahia-logo.jpg', 'image/jpeg').then((node) => {
-            const imageUuid = node?.data?.jcr.addNode.uuid
-            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/files')
-        })
+        uploadFile('clientCache/jahia-logo.jpg', `/sites/${targetSiteKey}/files`, 'jahia-logo.jpg', 'image/jpeg').then(() => {
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/files');
+        });
         cy.log('The page should contains public Cache-Control header with medium ttl');
         cy.logout();
         cy.request({
