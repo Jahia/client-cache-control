@@ -1,4 +1,4 @@
-import {addNode, createSite, deleteSite, publishAndWaitJobEnding} from '@jahia/cypress';
+import {addNode, createSite, deleteSite, publishAndWaitJobEnding, uploadFile} from '@jahia/cypress';
 import {addSimplePage} from '../../utils/Utils';
 
 // Should be reactivated and completed when PR https://github.com/Jahia/jahia-private/pull/2353 will be merged
@@ -27,7 +27,7 @@ describe('Cache Control header tests', () => {
     // Test case 1 : Verify that a rendered page without any specific content contains Cache-Control header with :
     //  - a private cache-control (when accessed as authenticated user)
     //  - a public cache-control (when accessed as guest)
-    it('should find cache-control header according to render client policy test case 1', () => {
+    it('TestCase 1: In basic rendered page, should find private cache-control when root and public when guest ', () => {
         cy.login();
         addSimplePage(`/sites/${targetSiteKey}/home`, 'page1', 'Page test case 1', 'en', 'simple').then(() => {
             publishAndWaitJobEnding(`/sites/${targetSiteKey}/home`);
@@ -67,7 +67,7 @@ describe('Cache Control header tests', () => {
     });
 
     // Test case 2 : Verify that a rendered page with a private article is flagged with a private strategy when accessed as guest
-    it('should find cache-control header according to render client policy test case 2', () => {
+    it('TestCase2: in rendered page  with private content, should find private cache-control when guest', () => {
         cy.login();
         addSimplePage(`/sites/${targetSiteKey}/home`, 'page2', 'Page test case 2', 'en', 'simple').then(() => {
             addNode({parentPathOrId: `/sites/${targetSiteKey}/home/page2`,
@@ -104,7 +104,7 @@ describe('Cache Control header tests', () => {
     });
 
     // Test case 3 : Verify that a rendered page with an article authored (use of cache.expiration=42) is flagged with a custom strategy when accessed as guest
-    it('should find cache-control header according to render client policy test case 3', () => {
+    it('TestCase 3: in rendered page with custom cache.expiration=42, should find public cache-control with s-maxage=42', () => {
         cy.login();
         addSimplePage(`/sites/${targetSiteKey}/home`, 'page3', 'Page test case 3', 'en', 'simple').then(() => {
             addNode({parentPathOrId: `/sites/${targetSiteKey}/home/page3`,
@@ -142,10 +142,33 @@ describe('Cache Control header tests', () => {
     });
 
     // Test case 4 : Verify that accessing files (like images) are flagged with a public strategy
+    it('TestCase 4: for images in media library, should find public cache-control with medium ttl value s-maxage=600', () => {
+        cy.login();
+        uploadFile('clientCache/jahia-logo.jpg', `/sites/${targetSiteKey}/files`, 'jahia-logo.jpg', 'image/jpeg').then((node) => {
+            const imageUuid = node?.data?.jcr.addNode.uuid
+            publishAndWaitJobEnding('/sites/' + targetSiteKey + '/files')
+        })
+        cy.log('The page should contains public Cache-Control header with medium ttl');
+        cy.logout();
+        cy.request({
+            url: '/files/live/sites/' + targetSiteKey + '/files/jahia-logo.jpg',
+            followRedirect: true,
+            failOnStatusCode: false
+        }).then(response => {
+            expect(response.status).to.eq(200);
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
+            expect(cache).to.contains('public');
+            expect(cache).to.contains('must-revalidate');
+            expect(cache).to.contains('max-age=1');
+            expect(cache).to.contains('s-maxage=600');
+            expect(cache).to.contains('stale-while-revalidate=15');
+        });
+    });
 
     // Test case 5 : Verify that accessing modules resources content are flagged with a public strategy
     //   -> Use a request to simpleTemplateSet module for /css/style2.css
-    it('should find cache-control header rule bases for a module embedded content, test case 5', () => {
+    it('TestCase5: for assets in modules, should find public cache-control with medium ttl value s-maxage=600', () => {
         cy.logout();
         cy.request({
             url: '/modules/client-cache-control-test-template/css/style2.css',
@@ -165,7 +188,7 @@ describe('Cache Control header tests', () => {
 
     // Test case 6 : Verify that accessing generated resources are flagged with an immutable strategy
     //   ->  use a page that contains resources, parse injected css or js and access the resource directly to check header
-    it('should find cache-control header immutable for generated resources, test case 6', () => {
+    it('TestCase6: for generated-resources, should find immutable cache-control', () => {
         cy.login();
         addSimplePage(`/sites/${targetSiteKey}/home`, 'page6', 'Page test case 6', 'en', 'simple').then(() => {
             addNode({parentPathOrId: `/sites/${targetSiteKey}/home/page6`,
@@ -217,7 +240,7 @@ describe('Cache Control header tests', () => {
     // Test case 7 : Verify that accessing a rule with a header defined without template is working
     //   -> Use a request to simpleTemplateSet module for /css/style.css
     //   a custom rule is defined in a dedicated ruleset
-    it('should find cache-control header rule bases for a stylesheet, test case 7', () => {
+    it('TestCase7, for url with a dedicated header value rule, should find that value in cache-control', () => {
         cy.logout();
         cy.request({
             url: '/modules/client-cache-control-test-template/css/style.css',
@@ -233,7 +256,7 @@ describe('Cache Control header tests', () => {
     });
 
     // Test case 8 : Verify that accessing /tools is flagged with a private strategy
-    it('should find cache-control header private for tools, test case 8', () => {
+    it('TestCase8: for tools, should find a private cache-control', () => {
         cy.login();
         cy.request({
             url: '/tools',
