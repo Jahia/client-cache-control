@@ -141,7 +141,7 @@ describe('Cache Control header tests', () => {
         });
     });
 
-    // Test case 4 : Verify that accessing files (like images) are flagged with a public strategy
+    // Test case 4 : Verify that accessing files (like images) are flagged with a public-medium strategy
     it('TestCase 4: for images in media library, should find public cache-control with medium ttl value s-maxage=600', () => {
         cy.login();
         uploadFile('clientCache/jahia-logo.jpg', `/sites/${targetSiteKey}/files`, 'jahia-logo.jpg', 'image/jpeg').then(() => {
