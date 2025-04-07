@@ -4,7 +4,7 @@ describe('Cache Control config tests', () => {
         cy.log('Getting rules list from graphql to check configuration');
         cy.apollo({
             queryFile: 'listRules.graphql'
-        }).then((response) => {
+        }).then(response => {
             cy.log(JSON.stringify(response));
             const rules = response?.data?.admin?.jahia?.clientCacheControl?.rules;
             expect(rules).to.not.be.empty;
