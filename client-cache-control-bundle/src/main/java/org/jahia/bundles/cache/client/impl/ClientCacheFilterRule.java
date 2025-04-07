@@ -38,6 +38,7 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
     public static final String RULE_PART_SEPARATOR = ";";
     public static final String TEMPLATE_PREFIX = "template:";
 
+    private int priority = 0;
     private String ruleSetKey;
     private Set<String> methods;
     private String urlPatternString;
@@ -53,6 +54,14 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
 
     public void setRuleSetKey(String ruleSetKey) {
         this.ruleSetKey = ruleSetKey;
+    }
+
+    @Override public int getPriority() {
+        return priority;
+    }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
     }
 
     @Override public Set<String> getMethods() {
@@ -104,11 +113,11 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
     }
 
     public boolean isValid() {
-        return !methods.isEmpty() && urlPattern != null && StringUtils.isNotEmpty(header);
+        return priority > 0 && !methods.isEmpty() && urlPattern != null && StringUtils.isNotEmpty(header);
     }
 
     @Override public String toString() {
-        return "RuleEntry{" + "ruleSetKey='" + ruleSetKey + '\'' + ", methods=" + methods + ", urlPattern=" + urlPattern
+        return "RuleEntry{" + "priority='" + priority + '\'' + ", methods=" + methods + ", urlPattern=" + urlPattern
                 + ", header='" + header + '\'' + '}';
     }
 
@@ -117,25 +126,26 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        ClientCacheFilterRule ruleEntry = (ClientCacheFilterRule) o;
-        return Objects.equals(ruleSetKey, ruleEntry.ruleSetKey) && Objects.equals(methods, ruleEntry.methods) && Objects.equals(
-                urlPatternString, ruleEntry.urlPatternString) && Objects.equals(header, ruleEntry.header);
+        ClientCacheFilterRule that = (ClientCacheFilterRule) o;
+        return priority == that.priority && Objects.equals(ruleSetKey, that.ruleSetKey) && Objects.equals(methods, that.methods)
+                && Objects.equals(urlPatternString, that.urlPatternString) && Objects.equals(header, that.header);
     }
 
     @Override public int hashCode() {
-        return Objects.hash(ruleSetKey, methods, urlPatternString, header);
+        return Objects.hash(priority, ruleSetKey, methods, urlPatternString, header);
     }
 
     public static ClientCacheFilterRule deserialize(String serialized) {
         ClientCacheFilterRule entry = new ClientCacheFilterRule();
         String[] parts = serialized.split(RULE_PART_SEPARATOR);
-        if (parts.length != 3) {
+        if (parts.length != 4) {
             return entry;
         }
-        entry.setMethods(Set.of(StringUtils.split(parts[0], '|')));
-        entry.setUrlPatternString(parts[1]);
-        entry.setUrlPattern(Pattern.compile(parts[1]));
-        entry.setHeader(parts[2]);
+        entry.setPriority(Integer.parseInt(parts[0]));
+        entry.setMethods(Set.of(StringUtils.split(parts[1], '|')));
+        entry.setUrlPatternString(parts[2]);
+        entry.setUrlPattern(Pattern.compile(entry.getUrlPatternString()));
+        entry.setHeader(parts[3]);
         return entry;
     }
 
