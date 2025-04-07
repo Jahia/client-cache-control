@@ -30,40 +30,9 @@ import java.util.regex.Pattern;
  */
 public interface ClientCacheRule {
 
-    /*
-     * The priority of the rule. Lower values have higher priority.
-     * Default rule priorities are spaced about a hundred apart to allow for other rules to be interspersed.
-     */
-    int getPriority();
-
-    /**
-     * A set of methods that the rule can be applied.
-     *
-     * @return the set of methods names
-     */
     Set<String> getMethods();
-
-    /**
-     * A URL pattern that the rule can be applied to.
-     *
-     * @return the pattern
-     */
     Pattern getUrlPattern();
-
-    /**
-     * A cache control header template name
-     * (cannot be used in conjunction with a headerValue)
-     *
-     * @return the template name
-     */
     String getHeaderTemplate();
-
-    /**
-     * A cache control header template predefined value
-     * (cannot be used in conjunction with a headerTemplate)
-     *
-     * @return the header value
-     */
     String getHeaderValue();
 
 }
