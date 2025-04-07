@@ -67,6 +67,11 @@
             <artifactId>org.jahia.bundles.client-cache-control-impl</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.jahia.bundles</groupId>
+            <artifactId>org.jahia.bundles.client-cache-control-graphql</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -41,8 +41,8 @@ public class ClientCacheFilterTemplate implements ClientCacheTemplate {
 
     public static final ClientCacheFilterTemplate EMPTY = new ClientCacheFilterTemplate("empty", "");
 
-    private String name;
-    private String template;
+    private final String name;
+    private final String template;
 
     public ClientCacheFilterTemplate(String name, String template) {
         this.name = name;

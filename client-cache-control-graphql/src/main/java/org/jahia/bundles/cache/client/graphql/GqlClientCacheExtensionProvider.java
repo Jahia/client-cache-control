@@ -1,4 +1,4 @@
-package org.jahia.bundles.cache.client.api;/*
+/*
  * ==========================================================================================
  * =                            JAHIA'S ENTERPRISE DISTRIBUTION                             =
  * ==========================================================================================
@@ -21,43 +21,22 @@ package org.jahia.bundles.cache.client.api;/*
  *
  * ==========================================================================================
  */
+package org.jahia.bundles.cache.client.graphql;
 
-import java.util.Set;
-import java.util.regex.Pattern;
+import org.jahia.modules.graphql.provider.dxm.DXGraphQLExtensionsProvider;
+import org.osgi.service.component.annotations.Component;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * @author Jerome Blanchard
  */
-public interface ClientCacheRule {
+@Component(immediate = true, service= DXGraphQLExtensionsProvider.class)
+public class GqlClientCacheExtensionProvider  implements DXGraphQLExtensionsProvider {
 
-    /**
-     * The priority of the rule. Lower values have higher priority.
-     *
-     * @return the priority
-     */
-    float getPriority();
-
-    /**
-     * A set of methods that the rule can be applied.
-     *
-     * @return the set of methods names
-     */
-    Set<String> getMethods();
-
-    /**
-     * A URL regular expression that the rule can be applied to.
-     *
-     * @return the regexp
-     */
-    String getUrlRegexp();
-
-    /**
-     * A cache control header
-     * The header can be either a reference to a ClientCacheTemplate (template:{name})
-     * nor a definitive Cache-Control header value to apply asis.
-     *
-     * @return the header value
-     */
-    String getHeader();
-
+    @Override
+    public Collection<Class<?>> getExtensions() {
+        return Arrays.<Class<?>>asList(JahiaAdminQueryExtension.class);
+    }
 }

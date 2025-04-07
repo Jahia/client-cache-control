@@ -78,13 +78,13 @@ public class ClientCacheFilter extends AbstractServletFilter {
         LOGGER.debug("{} {} Entering Cache Control preset filter", hRequest.getMethod(), hRequest.getRequestURI());
         hRequest.setAttribute(ClientCacheServiceImpl.CC_ORIGINAL_REQUEST_URI_ATTR, hRequest.getRequestURI());
         boolean defaultPreset = false;
-        String presetCacheControlValue = service.getCacheControlHeader(hRequest.getMethod(), hRequest.getRequestURI(), Collections.EMPTY_MAP);
+        String presetCacheControlValue = service.getCacheControlHeader(hRequest.getMethod(), hRequest.getRequestURI(), Collections.emptyMap());
         if (presetCacheControlValue.isEmpty()) {
             if (hResponseWrapper.containsHeader(HttpHeaders.CACHE_CONTROL)) {
                 LOGGER.warn("[{}] Cache-Control header was already set to value, do not change: [{}]", hRequest.getRequestURI(), hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL));
             } else {
                 // Using the default preset when service did not find rule for that request.
-                presetCacheControlValue = service.getCacheControlHeader(ClientCacheFilterTemplate.DEFAULT, Collections.EMPTY_MAP);
+                presetCacheControlValue = service.getCacheControlHeader(ClientCacheFilterTemplate.DEFAULT, Collections.emptyMap());
                 hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
                 defaultPreset = true;
                 LOGGER.debug("[{}] Predefining DEFAULT Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);

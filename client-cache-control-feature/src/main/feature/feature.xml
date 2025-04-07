@@ -7,6 +7,7 @@
         <configfile finalname="etc/org.jahia.bundles.cache.client.ruleset-default.yml">mvn:org.jahia.bundles/org.jahia.bundles.client-cache-control-impl/${project.version}/yml/ruleset-default-yml</configfile>
         <bundle>mvn:org.jahia.bundles/org.jahia.bundles.client-cache-control-api/9.0.0-SNAPSHOT</bundle>
         <bundle>mvn:org.jahia.bundles/org.jahia.bundles.client-cache-control-impl/${project.version}</bundle>
+        <bundle>mvn:org.jahia.bundles/org.jahia.bundles.client-cache-control-graphql/${project.version}</bundle>
     </feature>
 
 </features>

@@ -1,4 +1,4 @@
-package org.jahia.bundles.cache.client.api;/*
+/*
  * ==========================================================================================
  * =                            JAHIA'S ENTERPRISE DISTRIBUTION                             =
  * ==========================================================================================
@@ -8,7 +8,7 @@ package org.jahia.bundles.cache.client.api;/*
  * JAHIA'S ENTERPRISE DISTRIBUTIONS LICENSING - IMPORTANT INFORMATION
  * ==========================================================================================
  *
- *     Copyright (C) 2002-2025 Jahia Solutions Group. All rights reserved.
+ *     Copyright (C) 2002-2023 Jahia Solutions Group. All rights reserved.
  *
  *     This file is part of a Jahia's Enterprise Distribution.
  *
@@ -21,43 +21,23 @@ package org.jahia.bundles.cache.client.api;/*
  *
  * ==========================================================================================
  */
+package org.jahia.bundles.cache.client.graphql;
 
-import java.util.Set;
-import java.util.regex.Pattern;
+import graphql.annotations.annotationTypes.GraphQLDescription;
+import graphql.annotations.annotationTypes.GraphQLField;
+import graphql.annotations.annotationTypes.GraphQLName;
+import graphql.annotations.annotationTypes.GraphQLTypeExtension;
+import org.jahia.modules.graphql.provider.dxm.admin.GqlJahiaAdminQuery;
 
-/**
- * @author Jerome Blanchard
- */
-public interface ClientCacheRule {
+@GraphQLTypeExtension(GqlJahiaAdminQuery.class)
+@GraphQLDescription("Query extensions for Client Cache Control")
+public class JahiaAdminQueryExtension {
 
-    /**
-     * The priority of the rule. Lower values have higher priority.
-     *
-     * @return the priority
-     */
-    float getPriority();
-
-    /**
-     * A set of methods that the rule can be applied.
-     *
-     * @return the set of methods names
-     */
-    Set<String> getMethods();
-
-    /**
-     * A URL regular expression that the rule can be applied to.
-     *
-     * @return the regexp
-     */
-    String getUrlRegexp();
-
-    /**
-     * A cache control header
-     * The header can be either a reference to a ClientCacheTemplate (template:{name})
-     * nor a definitive Cache-Control header value to apply asis.
-     *
-     * @return the header value
-     */
-    String getHeader();
+    @GraphQLField
+    @GraphQLName("clientCacheControl")
+    @GraphQLDescription("Client Cache-Control GraphQL")
+    public static GqlClientCacheControl clientCacheControl() {
+        return new GqlClientCacheControl();
+    }
 
 }

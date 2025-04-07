@@ -1,4 +1,4 @@
-package org.jahia.bundles.cache.client.api;/*
+/*
  * ==========================================================================================
  * =                            JAHIA'S ENTERPRISE DISTRIBUTION                             =
  * ==========================================================================================
@@ -21,43 +21,36 @@ package org.jahia.bundles.cache.client.api;/*
  *
  * ==========================================================================================
  */
+package org.jahia.bundles.cache.client.graphql;
 
-import java.util.Set;
-import java.util.regex.Pattern;
+import graphql.annotations.annotationTypes.GraphQLDescription;
+import graphql.annotations.annotationTypes.GraphQLField;
+import graphql.annotations.annotationTypes.GraphQLName;
+import org.jahia.bundles.cache.client.api.ClientCacheTemplate;
 
 /**
  * @author Jerome Blanchard
  */
-public interface ClientCacheRule {
+@GraphQLName("GqlClientCacheTemplate")
+@GraphQLDescription("Client Cache-Control header template")
+public class GqlClientCacheTemplate {
 
-    /**
-     * The priority of the rule. Lower values have higher priority.
-     *
-     * @return the priority
-     */
-    float getPriority();
+    private final ClientCacheTemplate template;
 
-    /**
-     * A set of methods that the rule can be applied.
-     *
-     * @return the set of methods names
-     */
-    Set<String> getMethods();
+    public GqlClientCacheTemplate(ClientCacheTemplate template) {
+        this.template = template;
+    }
 
-    /**
-     * A URL regular expression that the rule can be applied to.
-     *
-     * @return the regexp
-     */
-    String getUrlRegexp();
+    @GraphQLField
+    @GraphQLDescription("Template name")
+    public String getName() {
+        return template.getName();
+    }
 
-    /**
-     * A cache control header
-     * The header can be either a reference to a ClientCacheTemplate (template:{name})
-     * nor a definitive Cache-Control header value to apply asis.
-     *
-     * @return the header value
-     */
-    String getHeader();
+    @GraphQLField
+    @GraphQLDescription("Template value")
+    public String getValue() {
+        return template.getTemplate();
+    }
 
 }

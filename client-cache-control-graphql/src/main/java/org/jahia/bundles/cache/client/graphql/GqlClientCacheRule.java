@@ -1,4 +1,4 @@
-package org.jahia.bundles.cache.client.api;/*
+/*
  * ==========================================================================================
  * =                            JAHIA'S ENTERPRISE DISTRIBUTION                             =
  * ==========================================================================================
@@ -21,43 +21,50 @@ package org.jahia.bundles.cache.client.api;/*
  *
  * ==========================================================================================
  */
+package org.jahia.bundles.cache.client.graphql;
+
+import graphql.annotations.annotationTypes.GraphQLDescription;
+import graphql.annotations.annotationTypes.GraphQLField;
+import graphql.annotations.annotationTypes.GraphQLName;
+import org.jahia.bundles.cache.client.api.ClientCacheRule;
 
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * @author Jerome Blanchard
  */
-public interface ClientCacheRule {
+@GraphQLName("GqlClientCacheRule")
+@GraphQLDescription("Client Cache-Control Filtering Rule")
+public class GqlClientCacheRule {
 
-    /**
-     * The priority of the rule. Lower values have higher priority.
-     *
-     * @return the priority
-     */
-    float getPriority();
+    private final ClientCacheRule rule;
 
-    /**
-     * A set of methods that the rule can be applied.
-     *
-     * @return the set of methods names
-     */
-    Set<String> getMethods();
+    public GqlClientCacheRule(ClientCacheRule rule) {
+        this.rule = rule;
+    }
 
-    /**
-     * A URL regular expression that the rule can be applied to.
-     *
-     * @return the regexp
-     */
-    String getUrlRegexp();
+    @GraphQLField
+    @GraphQLDescription("Rule priority (lower number = higher priority)")
+    public String getPriority() {
+        return Float.toString(rule.getPriority());
+    }
 
-    /**
-     * A cache control header
-     * The header can be either a reference to a ClientCacheTemplate (template:{name})
-     * nor a definitive Cache-Control header value to apply asis.
-     *
-     * @return the header value
-     */
-    String getHeader();
+    @GraphQLField
+    @GraphQLDescription("Concerned method's list")
+    public Set<String> getMethods() {
+        return rule.getMethods();
+    }
+
+    @GraphQLField
+    @GraphQLDescription("URL regular expression")
+    public String getUrlRegexp() {
+        return rule.getUrlRegexp();
+    }
+
+    @GraphQLField
+    @GraphQLDescription("Header")
+    public String getHeader() {
+        return rule.getHeader();
+    }
 
 }

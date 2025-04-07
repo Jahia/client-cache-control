@@ -98,6 +98,7 @@
     <modules>
         <module>client-cache-control-api</module>
         <module>client-cache-control-bundle</module>
+        <module>client-cache-control-graphql</module>
         <module>client-cache-control-feature</module>
     </modules>
 </project>

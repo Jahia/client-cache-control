@@ -38,9 +38,10 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
     public static final String RULE_PART_SEPARATOR = ";";
     public static final String TEMPLATE_PREFIX = "template:";
 
+    private float priority = 0;
     private String ruleSetKey;
     private Set<String> methods;
-    private String urlPatternString;
+    private String urlRegexp;
     private Pattern urlPattern;
     private String header;
 
@@ -55,6 +56,14 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
         this.ruleSetKey = ruleSetKey;
     }
 
+    @Override public float getPriority() {
+        return priority;
+    }
+
+    public void setPriority(float priority) {
+        this.priority = priority;
+    }
+
     @Override public Set<String> getMethods() {
         return methods;
     }
@@ -63,15 +72,15 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
         this.methods = methods;
     }
 
-    public String getUrlPatternString() {
-        return urlPatternString;
+    @Override public String getUrlRegexp() {
+        return urlRegexp;
     }
 
-    public void setUrlPatternString(String urlPatternString) {
-        this.urlPatternString = urlPatternString;
+    public void setUrlRegexp(String urlRegexp) {
+        this.urlRegexp = urlRegexp;
     }
 
-    @Override public Pattern getUrlPattern() {
+    public Pattern getUrlPattern() {
         return urlPattern;
     }
 
@@ -79,20 +88,21 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
         this.urlPattern = urlPattern;
     }
 
+    @Override
     public String getHeader() {
         return header;
     }
 
-    @Override public String getHeaderTemplate() {
+    public void setHeader(String header) {
+        this.header = header;
+    }
+
+    public String getHeaderTemplate() {
         return isHeaderTemplate()?getHeaderTemplateName():null;
     }
 
-    @Override public String getHeaderValue() {
+    public String getHeaderValue() {
         return isHeaderTemplate()?null:header;
-    }
-
-    public void setHeader(String header) {
-        this.header = header;
     }
 
     private boolean isHeaderTemplate() {
@@ -104,11 +114,11 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
     }
 
     public boolean isValid() {
-        return !methods.isEmpty() && urlPattern != null && StringUtils.isNotEmpty(header);
+        return methods!= null && !methods.isEmpty() && urlPattern != null && StringUtils.isNotEmpty(header);
     }
 
     @Override public String toString() {
-        return "RuleEntry{" + "ruleSetKey='" + ruleSetKey + '\'' + ", methods=" + methods + ", urlPattern=" + urlPattern
+        return "RuleEntry{" + "priority='" + priority + '\'' + ", methods=" + methods + ", urlPattern=" + urlPattern
                 + ", header='" + header + '\'' + '}';
     }
 
@@ -117,41 +127,30 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        ClientCacheFilterRule ruleEntry = (ClientCacheFilterRule) o;
-        return Objects.equals(ruleSetKey, ruleEntry.ruleSetKey) && Objects.equals(methods, ruleEntry.methods) && Objects.equals(
-                urlPatternString, ruleEntry.urlPatternString) && Objects.equals(header, ruleEntry.header);
+        ClientCacheFilterRule that = (ClientCacheFilterRule) o;
+        return priority == that.priority && Objects.equals(ruleSetKey, that.ruleSetKey) && Objects.equals(methods, that.methods)
+                && Objects.equals(urlRegexp, that.urlRegexp) && Objects.equals(header, that.header);
     }
 
     @Override public int hashCode() {
-        return Objects.hash(ruleSetKey, methods, urlPatternString, header);
+        return Objects.hash(priority, ruleSetKey, methods, urlRegexp, header);
     }
 
     public static ClientCacheFilterRule deserialize(String serialized) {
         ClientCacheFilterRule entry = new ClientCacheFilterRule();
         String[] parts = serialized.split(RULE_PART_SEPARATOR);
-        if (parts.length != 3) {
+        if (parts.length != 4) {
             return entry;
         }
-        entry.setMethods(Set.of(StringUtils.split(parts[0], '|')));
-        entry.setUrlPatternString(parts[1]);
-        entry.setUrlPattern(Pattern.compile(parts[1]));
-        entry.setHeader(parts[2]);
+        entry.setPriority(Float.parseFloat(parts[0]));
+        entry.setMethods(Set.of(StringUtils.split(parts[1], '|')));
+        entry.setUrlRegexp(parts[2]);
+        entry.setUrlPattern(Pattern.compile(entry.getUrlRegexp()));
+        entry.setHeader(parts[3]);
         return entry;
     }
 
     @Override public int compareTo(ClientCacheFilterRule ruleEntry) {
-        int segmentCount1 = this.urlPatternString.split("/").length;
-        int segmentCount2 = ruleEntry.urlPatternString.split("/").length;
-        if (segmentCount1 != segmentCount2) {
-            return Integer.compare(segmentCount2, segmentCount1);
-        }
-
-        int wildcardCount1 = (int) this.urlPatternString.chars().filter(ch -> ch == '.').count();
-        int wildcardCount2 = (int) ruleEntry.urlPatternString.chars().filter(ch -> ch == '.').count();
-        if (wildcardCount1 != wildcardCount2) {
-            return Integer.compare(wildcardCount1, wildcardCount2);
-        }
-
-        return Integer.compare(this.urlPatternString.length(), ruleEntry.urlPatternString.length());
+        return Float.compare(this.priority, ruleEntry.priority);
     }
 }
