@@ -1,25 +1,17 @@
 /*
- * ==========================================================================================
- * =                            JAHIA'S ENTERPRISE DISTRIBUTION                             =
- * ==========================================================================================
+ * Copyright (C) 2002-2025 Jahia Solutions Group SA. All rights reserved.
  *
- *                                  http://www.jahia.com
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * JAHIA'S ENTERPRISE DISTRIBUTIONS LICENSING - IMPORTANT INFORMATION
- * ==========================================================================================
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *     Copyright (C) 2002-2025 Jahia Solutions Group. All rights reserved.
- *
- *     This file is part of a Jahia's Enterprise Distribution.
- *
- *     Jahia's Enterprise Distributions must be used in accordance with the terms
- *     contained in the Jahia Solutions Group Terms &amp; Conditions as well as
- *     the Jahia Sustainable Enterprise License (JSEL).
- *
- *     For questions regarding licensing, support, production usage...
- *     please contact our team at sales@jahia.com or go to http://www.jahia.com/license.
- *
- * ==========================================================================================
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jahia.bundles.cache.client.filter;
 
@@ -78,13 +70,13 @@ public class ClientCacheFilter extends AbstractServletFilter {
         LOGGER.debug("{} {} Entering Cache Control preset filter", hRequest.getMethod(), hRequest.getRequestURI());
         hRequest.setAttribute(ClientCacheServiceImpl.CC_ORIGINAL_REQUEST_URI_ATTR, hRequest.getRequestURI());
         boolean defaultPreset = false;
-        String presetCacheControlValue = service.getCacheControlHeader(hRequest.getMethod(), hRequest.getRequestURI(), Collections.EMPTY_MAP);
+        String presetCacheControlValue = service.getCacheControlHeader(hRequest.getMethod(), hRequest.getRequestURI(), Collections.emptyMap());
         if (presetCacheControlValue.isEmpty()) {
             if (hResponseWrapper.containsHeader(HttpHeaders.CACHE_CONTROL)) {
                 LOGGER.warn("[{}] Cache-Control header was already set to value, do not change: [{}]", hRequest.getRequestURI(), hResponseWrapper.getHeader(HttpHeaders.CACHE_CONTROL));
             } else {
                 // Using the default preset when service did not find rule for that request.
-                presetCacheControlValue = service.getCacheControlHeader(ClientCacheFilterTemplate.DEFAULT, Collections.EMPTY_MAP);
+                presetCacheControlValue = service.getCacheControlHeader(ClientCacheFilterTemplate.DEFAULT, Collections.emptyMap());
                 hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue);
                 defaultPreset = true;
                 LOGGER.debug("[{}] Predefining DEFAULT Cache-Control: [{}]", hRequest.getRequestURI(), presetCacheControlValue);

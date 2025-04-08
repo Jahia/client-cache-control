@@ -1,0 +1,14 @@
+query {
+    admin {
+        jahia {
+            clientCacheControl {
+                rules {
+                    priority,
+                    methods,
+                    urlRegexp,
+                    header
+                }
+            }
+        }
+    }
+}

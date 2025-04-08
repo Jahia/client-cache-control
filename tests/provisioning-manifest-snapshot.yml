@@ -6,24 +6,24 @@
   properties:
     name: 'Default ruleset (test)'
     description: 'Default ruleset (test)'
-    rules[0]: "GET|HEAD;(?:/[^/]+)?/files/.*;template:public-medium"
-    rules[1]: "GET|HEAD;(?:/[^/]+)?/repository/.*;template:public-medium"
-    rules[2]: "GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"
-    rules[3]: "GET|HEAD;(?:/[^/]+)?/modules/.*;template:public-medium"
-    rules[4]: "GET|HEAD;(?:/[^/]+)?/welcome.*;template:private"
-    rules[5]: "GET|HEAD;(?:/[^/]+)?/start;template:private"
-    rules[6]: "GET|HEAD;(?:/[^/]+)?/validateTicket;template:private"
-    rules[7]: "GET|HEAD;(?:/[^/]+)?/administration.*;template:private"
-    rules[8]: "GET|HEAD;(?:/[^/]+)?/cms/.*;template:private"
-    rules[9]: "GET|HEAD;(?:/[^/]+)?/engines/.*\\.jsp(\\?.*)?;template:private"
-    rules[10]: "GET|HEAD;(?:/[^/]+)?/tools/.*;template:private"
-    rules[11]: "GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
-    rules[12]: "GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
-    rules[13]: "POST|DELETE|PATCH;.*;template:private"
+    rules[0]: "1;GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"
+    rules[1]: "2;GET|HEAD;(?:/[^/]+)?/cms/.*;template:private"
+    rules[2]: "3;GET|HEAD;(?:/[^/]+)?/welcome.*;template:private"
+    rules[3]: "4;GET|HEAD;(?:/[^/]+)?/start;template:private"
+    rules[4]: "5;GET|HEAD;(?:/[^/]+)?/validateTicket;template:private"
+    rules[5]: "6;GET|HEAD;(?:/[^/]+)?/administration.*;template:private"
+    rules[6]: "7;GET|HEAD;(?:/[^/]+)?/files/.*;template:public-medium"
+    rules[7]: "8;GET|HEAD;(?:/[^/]+)?/repository/.*;template:public-medium"
+    rules[8]: "9;GET|HEAD;(?:/[^/]+)?/modules/.*;template:public-medium"
+    rules[9]: "10;GET|HEAD;(?:/[^/]+)?/engines/.*\\.jsp(\\?.*)?;template:private"
+    rules[10]: "11;GET|HEAD;(?:/[^/]+)?/tools/.*;template:private"
+    rules[11]: "12;GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
+    rules[12]: "13;GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
+    rules[13]: "14;POST|DELETE|PATCH;.*;template:private"
 
 - editConfiguration: 'org.jahia.bundles.cache.client.ruleset'
   configIdentifier: 'custom'
   properties:
     name: 'Custom ruleset (test)'
     description: 'Custom ruleset (test)'
-    rules[0]: "GET|HEAD;(?:/[^/]+)?/modules/client-cache-control-test-template/css/style.css;public, plop, tagada"
+    rules[0]: "8.9;GET|HEAD;(?:/[^/]+)?/modules/client-cache-control-test-template/css/style.css;public, plop, tagada"

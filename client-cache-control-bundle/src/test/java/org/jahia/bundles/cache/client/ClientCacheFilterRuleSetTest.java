@@ -1,25 +1,17 @@
 /*
- * ==========================================================================================
- * =                            JAHIA'S ENTERPRISE DISTRIBUTION                             =
- * ==========================================================================================
+ * Copyright (C) 2002-2025 Jahia Solutions Group SA. All rights reserved.
  *
- *                                  http://www.jahia.com
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * JAHIA'S ENTERPRISE DISTRIBUTIONS LICENSING - IMPORTANT INFORMATION
- * ==========================================================================================
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *     Copyright (C) 2002-2025 Jahia Solutions Group. All rights reserved.
- *
- *     This file is part of a Jahia's Enterprise Distribution.
- *
- *     Jahia's Enterprise Distributions must be used in accordance with the terms
- *     contained in the Jahia Solutions Group Terms &amp; Conditions as well as
- *     the Jahia Sustainable Enterprise License (JSEL).
- *
- *     For questions regarding licensing, support, production usage...
- *     please contact our team at sales@jahia.com or go to http://www.jahia.com/license.
- *
- * ==========================================================================================
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.jahia.bundles.cache.client;
 
@@ -44,37 +36,55 @@ public class ClientCacheFilterRuleSetTest {
 
     public static final List<ClientCacheFilterRule> rules = new LinkedList<>();
     static {
-        rules.add(ClientCacheFilterRule.deserialize("GET|HEAD;(?:/[^/]+)?/files/.*;template:public"));
-        rules.add(ClientCacheFilterRule.deserialize("GET|HEAD;(?:/[^/]+)?/repository/.*;template:public"));
-        rules.add(ClientCacheFilterRule.deserialize("GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"));
-        rules.add(ClientCacheFilterRule.deserialize("GET|HEAD;(?:/[^/]+)?/cms/.*;template:private"));
-        rules.add(ClientCacheFilterRule.deserialize("GET|HEAD;(?:/[^/]+)?/generated-resources;template:private"));
-        rules.add(ClientCacheFilterRule.deserialize("GET|HEAD;/quiche;public, max-age=31536000, no-transform"));
-        rules.add(ClientCacheFilterRule.deserialize("GET|HEAD;/.*;template:public"));
+        rules.add(ClientCacheFilterRule.deserialize("3;GET|HEAD;(?:/[^/]+)?/files/.*;template:public"));
+        rules.add(ClientCacheFilterRule.deserialize("4;GET|HEAD;(?:/[^/]+)?/repository/.*;template:public"));
+        rules.add(ClientCacheFilterRule.deserialize("1;GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"));
+        rules.add(ClientCacheFilterRule.deserialize("2;GET|HEAD;(?:/[^/]+)?/cms/.*;template:private"));
+        rules.add(ClientCacheFilterRule.deserialize("5;GET|HEAD;(?:/[^/]+)?/generated-resources;template:private"));
+        rules.add(ClientCacheFilterRule.deserialize("6;GET|HEAD;/quiche;public, max-age=31536000, no-transform"));
+        rules.add(ClientCacheFilterRule.deserialize("7;GET|HEAD;/.*;template:public"));
         rules.sort(ClientCacheFilterRule::compareTo);
     }
 
     @Test
     public void testSortRules() {
         List<ClientCacheFilterRule> orderedRules = List.of(
-                ClientCacheFilterRule.deserialize("GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"),
-                ClientCacheFilterRule.deserialize("GET|HEAD;(?:/[^/]+)?/cms/.*;template:private"),
-                ClientCacheFilterRule.deserialize("GET|HEAD;(?:/[^/]+)?/files/.*;template:public"),
-                ClientCacheFilterRule.deserialize("GET|HEAD;(?:/[^/]+)?/repository/.*;template:public"),
-                ClientCacheFilterRule.deserialize("GET|HEAD;(?:/[^/]+)?/generated-resources;template:private"),
-                ClientCacheFilterRule.deserialize("GET|HEAD;/quiche;public, max-age=31536000, no-transform"),
-                ClientCacheFilterRule.deserialize("GET|HEAD;/.*;template:public")
-        );
+                ClientCacheFilterRule.deserialize("1;GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"),
+                ClientCacheFilterRule.deserialize("2;GET|HEAD;(?:/[^/]+)?/cms/.*;template:private"),
+                ClientCacheFilterRule.deserialize("3;GET|HEAD;(?:/[^/]+)?/files/.*;template:public"),
+                ClientCacheFilterRule.deserialize("4;GET|HEAD;(?:/[^/]+)?/repository/.*;template:public"),
+                ClientCacheFilterRule.deserialize("5;GET|HEAD;(?:/[^/]+)?/generated-resources;template:private"),
+                ClientCacheFilterRule.deserialize("6;GET|HEAD;/quiche;public, max-age=31536000, no-transform"),
+                ClientCacheFilterRule.deserialize("7;GET|HEAD;/.*;template:public")
+                );
         rules.forEach(ruleEntry -> LOGGER.info(ruleEntry.toString()));
-        Assert.assertEquals("(?:/[^/]+)?/cms/render/live/.*", rules.get(0).getUrlPattern().pattern());
+        Assert.assertEquals("(?:/[^/]+)?/cms/render/live/.*", rules.get(0).getUrlRegexp());
+        Assert.assertEquals("/.*", rules.get(6).getUrlRegexp());
         assertArrayEquals(orderedRules.toArray(), rules.toArray());
+
+        rules.add(ClientCacheFilterRule.deserialize("3.99;GET|HEAD;/tagada;template:plop"));
+        Assert.assertNotEquals("/tagada", rules.get(3).getUrlRegexp());
+        rules.sort(ClientCacheFilterRule::compareTo);
+        Assert.assertEquals("/tagada", rules.get(3).getUrlRegexp());
+        List<ClientCacheFilterRule> orderedRules2 = List.of(
+                ClientCacheFilterRule.deserialize("1;GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"),
+                ClientCacheFilterRule.deserialize("2;GET|HEAD;(?:/[^/]+)?/cms/.*;template:private"),
+                ClientCacheFilterRule.deserialize("3;GET|HEAD;(?:/[^/]+)?/files/.*;template:public"),
+                ClientCacheFilterRule.deserialize("3.99;GET|HEAD;/tagada;template:plop"),
+                ClientCacheFilterRule.deserialize("4;GET|HEAD;(?:/[^/]+)?/repository/.*;template:public"),
+                ClientCacheFilterRule.deserialize("5;GET|HEAD;(?:/[^/]+)?/generated-resources;template:private"),
+                ClientCacheFilterRule.deserialize("6;GET|HEAD;/quiche;public, max-age=31536000, no-transform"),
+                ClientCacheFilterRule.deserialize("7;GET|HEAD;/.*;template:public")
+        );
+        assertArrayEquals(orderedRules2.toArray(), rules.toArray());
+
     }
 
     @Test
     public void testMatchRule1() {
         Optional<ClientCacheFilterRule> firstMatchingRule = getFirstMatchingRule("GET", "/context/cms/logout");
         assertTrue(firstMatchingRule.isPresent());
-        assertTrue(firstMatchingRule.get().getUrlPatternString().contains("cms"));
+        assertTrue(firstMatchingRule.get().getUrlRegexp().contains("cms"));
         Assert.assertEquals("template:private", firstMatchingRule.get().getHeader());
     }
 

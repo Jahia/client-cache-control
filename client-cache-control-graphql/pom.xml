@@ -7,14 +7,13 @@
         <artifactId>client-cache-control-root</artifactId>
         <version>9.0.0-SNAPSHOT</version>
     </parent>
-    <name>Jahia Client Cache Control Implementation</name>
-    <artifactId>org.jahia.bundles.client-cache-control-impl</artifactId>
+    <name>Jahia Client Cache Control GraphQL API</name>
+    <artifactId>org.jahia.bundles.client-cache-control-graphql</artifactId>
     <version>9.0.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <properties>
         <import-package>org.jahia.bundles.filters.cache.client.api</import-package>
-        <private-package>org.jahia.bundles.filters.cache.client.filter,org.jahia.bundles.filters.cache.client.impl,org.jahia.bundles.filters.cache.client.render</private-package>
     </properties>
 
     <build>
@@ -30,29 +29,6 @@
                         <Bundle-Version>${project.version}</Bundle-Version>
                     </instructions>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <id>attach-artifacts</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>attach-artifact</goal>
-                        </goals>
-                        <configuration>
-                            <artifacts>
-                                <artifact>
-                                    <file>src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-default.yml</file>
-                                    <type>yml</type>
-                                    <classifier>ruleset-default-yml</classifier>
-                                </artifact>
-                            </artifacts>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.cyclonedx</groupId>
@@ -91,28 +67,28 @@
             <version>9.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.jahia.server</groupId>
-            <artifactId>jahia-impl</artifactId>
-            <version>${jahia.version}</version>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jahia.modules</groupId>
+            <artifactId>graphql-dxm-provider</artifactId>
+            <version>3.0.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.graphql-java</groupId>
+            <artifactId>graphql-java-annotations</artifactId>
+            <version>${graphql-java-annotations.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>osgi.core</artifactId>
+            <artifactId>osgi.cmpn</artifactId>
             <version>${osgi.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

@@ -13,11 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jahia.bundles.cache.client.api;
+package org.jahia.bundles.cache.client.graphql;
 
-public enum ClientCacheMode {
+import org.jahia.modules.graphql.provider.dxm.DXGraphQLExtensionsProvider;
+import org.osgi.service.component.annotations.Component;
 
-    STRICT,
-    ALLOW_OVERRIDES
+import java.util.Arrays;
+import java.util.Collection;
 
+/**
+ * @author Jerome Blanchard
+ */
+@Component(immediate = true, service= DXGraphQLExtensionsProvider.class)
+public class GqlClientCacheExtensionProvider  implements DXGraphQLExtensionsProvider {
+
+    @Override
+    public Collection<Class<?>> getExtensions() {
+        return Arrays.<Class<?>>asList(JahiaAdminQueryExtension.class);
+    }
 }
