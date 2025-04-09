@@ -27,7 +27,7 @@ describe('Cache Control header tests', () => {
     //  - a private cache-control (when accessed as authenticated user)
     //  - a private cache-control (when accessed as authenticated user in edit mode)
     //  - a public cache-control (when accessed as guest)
-    it('TestCase 1: In basic rendered page, should find private cache-control when root and public when guest ', () => {
+    it('TestCase 1: In basic rendered page, should find private cache-control when root (live and edit) and public when guest ', () => {
         cy.login();
         addSimplePage(`/sites/${targetSiteKey}/home`, 'page1', 'Page test case 1', 'en', 'simple').then(() => {
             publishAndWaitJobEnding(`/sites/${targetSiteKey}/home`);
