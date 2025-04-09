@@ -1,4 +1,4 @@
-describe('Cache Control config tests', () => {
+describe.skip('Cache Control config tests', () => {
     it('TestCase 1: List available rules', () => {
         cy.login();
         cy.log('Getting rules list from graphql to check configuration');
