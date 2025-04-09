@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  * @author Jerome Blanchard
  */
-public class ClientCacheFilterTemplate implements ClientCacheTemplate {
+public class ClientCacheFilterTemplate extends ClientCacheTemplate {
 
     public static final String PRIVATE = "private";
     public static final String PUBLIC = "public";
