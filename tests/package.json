@@ -12,6 +12,7 @@
     "@typescript-eslint/eslint-plugin": "^5.2.0",
     "@typescript-eslint/parser": "^5.2.0",
     "babel-plugin-istanbul": "^6.1.1",
+    "compare-versions": "^6.1.1",
     "cross-fetch": "3.1.6",
     "cypress": "13.6.4",
     "cypress-file-upload": "^5.0.8",
@@ -94,4 +95,4 @@
     "url": "https://github.com/Jahia/graphql-core/issues"
   },
   "homepage": "https://github.com/Jahia/graphql-core#readme"
-}
+ }

@@ -1,5 +1,6 @@
-import {addNode, createSite, deleteSite, publishAndWaitJobEnding, uploadFile} from '@jahia/cypress';
+import {addNode, createSite, deleteSite, getJahiaVersion, publishAndWaitJobEnding, uploadFile} from '@jahia/cypress';
 import {addSimplePage} from '../../utils/Utils';
+import {compare} from 'compare-versions'
 
 describe('Cache Control header tests', () => {
     const targetSiteKey = 'cacheTestSite';
@@ -263,9 +264,21 @@ describe('Cache Control header tests', () => {
             expect(response.status).to.eq(200);
             expect(response.headers).to.have.property('cache-control');
             const cache = response.headers['cache-control'];
-            expect(cache).to.contains('no-cache');
-            expect(cache).to.contains('no-store');
-            expect(cache).to.contains('max-age=0');
+            getJahiaVersion().then((jahiaVersion) => {
+                cy.log(jahiaVersion)
+                // Depending on Jahia version, client-cache-control is not configured the same way (strict for version 8.2.1.x and allow_overrides for >=8.2.2)
+                if (compare(jahiaVersion.release.replace('-SNAPSHOT', ''), '8.2.2', '<')) {
+                    // In version 8.2.1 the mode is strict so header is enforced by the yml config.
+                    expect(cache).to.contains('private');
+                    expect(cache).to.contains('must-revalidate');
+                    expect(cache).to.contains('max-age=0');
+                } else {
+                    // Until tools dedicated last-urlrewrite.xml is present and mode is overrides the header if populated by the xml file
+                    expect(cache).to.contains('no-cache');
+                    expect(cache).to.contains('no-store');
+                    expect(cache).to.contains('max-age=0');
+                }
+            })
         });
         cy.logout();
     });
