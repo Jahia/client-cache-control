@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 /**
  * @author Jerome Blanchard
  */
-public class ClientCacheFilterRule implements ClientCacheRule, Comparable<ClientCacheFilterRule> {
+public class ClientCacheFilterRule extends ClientCacheRule implements Comparable<ClientCacheFilterRule> {
 
     public static final String RULE_PART_SEPARATOR = ";";
     public static final String TEMPLATE_PREFIX = "template:";
@@ -48,7 +48,8 @@ public class ClientCacheFilterRule implements ClientCacheRule, Comparable<Client
         this.ruleSetKey = ruleSetKey;
     }
 
-    @Override public float getPriority() {
+    @Override
+    public float getPriority() {
         return priority;
     }
 

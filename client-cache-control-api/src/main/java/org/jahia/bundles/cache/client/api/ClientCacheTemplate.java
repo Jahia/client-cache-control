@@ -18,9 +18,20 @@ package org.jahia.bundles.cache.client.api;
 /**
  * @author Jerome Blanchard
  */
-public interface ClientCacheTemplate {
+public abstract class ClientCacheTemplate {
 
-    String getName();
-    String getTemplate();
+    /**
+     * The name of the template as referenced in rules like template:{name}
+     *
+     * @return name
+     */
+    abstract public String getName();
+
+    /**
+     * The template value to use.
+     *
+     * @return the template value
+     */
+    abstract public String getTemplate();
 
 }

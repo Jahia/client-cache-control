@@ -25,8 +25,9 @@ describe('Cache Control header tests', () => {
 
     // Test case 1 : Verify that a rendered page without any specific content contains Cache-Control header with :
     //  - a private cache-control (when accessed as authenticated user)
+    //  - a private cache-control (when accessed as authenticated user in edit mode)
     //  - a public cache-control (when accessed as guest)
-    it('TestCase 1: In basic rendered page, should find private cache-control when root and public when guest ', () => {
+    it('TestCase 1: In basic rendered page, should find private cache-control when root (live and edit) and public when guest ', () => {
         cy.login();
         addSimplePage(`/sites/${targetSiteKey}/home`, 'page1', 'Page test case 1', 'en', 'simple').then(() => {
             publishAndWaitJobEnding(`/sites/${targetSiteKey}/home`);
@@ -34,6 +35,20 @@ describe('Cache Control header tests', () => {
         cy.log('The page should contains Cache-Control header for private content when accessed logged in');
         cy.request({
             url: '/en/sites/' + targetSiteKey + '/home/page1.html',
+            followRedirect: true,
+            failOnStatusCode: false
+        }).then(response => {
+            expect(response.status).to.eq(200);
+            expect(response.body).to.contain('bodywrapper');
+            expect(response.headers).to.have.property('cache-control');
+            const cache = response.headers['cache-control'];
+            expect(cache).to.contains('private');
+            expect(cache).to.contains('no-cache');
+            expect(cache).to.contains('no-store');
+            expect(cache).to.contains('max-age=0');
+        });
+        cy.request({
+            url: '/cms/editframe/default/en/sites/' + targetSiteKey + '/home/page1.html',
             followRedirect: true,
             failOnStatusCode: false
         }).then(response => {

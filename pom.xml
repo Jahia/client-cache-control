@@ -15,6 +15,7 @@
 
     <properties>
         <jahia.version>8.2.1.0</jahia.version>
+        <graphql-dxm-provider.version>3.0.0</graphql-dxm-provider.version>
     </properties>
 
     <scm>

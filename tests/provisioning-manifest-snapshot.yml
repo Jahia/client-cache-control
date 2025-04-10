@@ -20,6 +20,7 @@
     rules[11]: "12;GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
     rules[12]: "13;GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
     rules[13]: "14;POST|DELETE|PATCH;.*;template:private"
+    rules[14]: "15;GET|HEAD;.*;template:public"
 
 - editConfiguration: 'org.jahia.bundles.cache.client.ruleset'
   configIdentifier: 'custom'

@@ -21,28 +21,28 @@ import java.util.regex.Pattern;
 /**
  * @author Jerome Blanchard
  */
-public interface ClientCacheRule {
+public abstract class ClientCacheRule {
 
     /**
      * The priority of the rule. Lower values have higher priority.
      *
      * @return the priority
      */
-    float getPriority();
+    abstract public float getPriority();
 
     /**
      * A set of methods that the rule can be applied.
      *
      * @return the set of methods names
      */
-    Set<String> getMethods();
+    abstract public Set<String> getMethods();
 
     /**
      * A URL regular expression that the rule can be applied to.
      *
      * @return the regexp
      */
-    String getUrlRegexp();
+    abstract public String getUrlRegexp();
 
     /**
      * A cache control header
@@ -51,6 +51,6 @@ public interface ClientCacheRule {
      *
      * @return the header value
      */
-    String getHeader();
+    abstract public String getHeader();
 
 }

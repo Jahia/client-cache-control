@@ -24,6 +24,7 @@ describe('Render Chain Client Cache Policy tests', () => {
 
     // Test case 1 : Verify that a page without any specific content is flagged with :
     //  - a private strategy (when accessed as authenticated user)
+    //  - a private strategy (when accessed as authenticated user in edit mode)
     //  - a public strategy (when accessed as guest)
     it('should find x-jahia-client-cache-policy header according to render client policy test case 1', () => {
         cy.login();
@@ -32,6 +33,16 @@ describe('Render Chain Client Cache Policy tests', () => {
             cy.log('The page should contains client cache strategy for testCase1');
             cy.request({
                 url: '/en/sites/' + targetSiteKey + '/home/testCase1.html',
+                followRedirect: true,
+                failOnStatusCode: false
+            }).then(response => {
+                expect(response.status).to.eq(200);
+                expect(response.body).to.contain('bodywrapper');
+                const cache = response.headers['x-jahia-client-cache-policy'];
+                expect(cache).to.eq('private');
+            });
+            cy.request({
+                url: '/cms/editframe/default/en/sites/' + targetSiteKey + '/home/testCase1.html',
                 followRedirect: true,
                 failOnStatusCode: false
             }).then(response => {

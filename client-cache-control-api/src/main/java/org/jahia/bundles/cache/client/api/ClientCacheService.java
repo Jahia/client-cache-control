@@ -30,9 +30,9 @@ public interface ClientCacheService {
 
     ClientCacheMode getMode();
 
-    List<? extends ClientCacheRule> listRules();
+    List<ClientCacheRule> listRules();
 
-    Collection<? extends ClientCacheTemplate> listHeaderTemplates();
+    Collection<ClientCacheTemplate> listHeaderTemplates();
 
     String getCacheControlHeader(String method, String uri, Map<String, String> templateParams);
 

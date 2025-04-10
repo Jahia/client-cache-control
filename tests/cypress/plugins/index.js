@@ -25,8 +25,8 @@ module.exports = (on, config) => {
             return sshCommand(commands, {
                 hostname: process.env.JAHIA_HOST,
                 port: process.env.JAHIA_PORT_KARAF,
-                username: process.env.JAHIA_USERNAME_TOOLS,
-                password: process.env.JAHIA_PASSWORD_TOOLS
+                username: process.env.JAHIA_USERNAME,
+                password: process.env.SUPER_USER_PASSWORD
             });
         }
     });

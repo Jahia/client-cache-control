@@ -16,6 +16,7 @@
 package org.jahia.bundles.cache.client.impl;
 
 import org.jahia.bundles.cache.client.api.ClientCacheMode;
+import org.jahia.bundles.cache.client.api.ClientCacheRule;
 import org.jahia.bundles.cache.client.api.ClientCacheService;
 import org.jahia.bundles.cache.client.api.ClientCacheTemplate;
 import org.osgi.service.component.annotations.*;
@@ -116,19 +117,24 @@ public class ClientCacheServiceImpl implements ClientCacheService {
     }
 
     @Override
-    public List<ClientCacheFilterRule> listRules() {
+    public List<ClientCacheRule> listRules() {
+        return new ArrayList<>(listFilterRules());
+    }
+
+    private List<ClientCacheFilterRule> listFilterRules() {
         if (factory == null) {
             return Collections.emptyList();
         }
         return this.factory.getRules();
     }
 
-    @Override public Collection<? extends ClientCacheTemplate> listHeaderTemplates() {
-        return cacheControlHeaderTemplates.values();
+    @Override
+    public Collection<ClientCacheTemplate> listHeaderTemplates() {
+        return new ArrayList<>(cacheControlHeaderTemplates.values());
     }
 
     @Override public String getCacheControlHeader(String method, String uri, Map<String, String> params) {
-        Optional<ClientCacheFilterRule> mRule = listRules().stream()
+        Optional<ClientCacheFilterRule> mRule = listFilterRules().stream()
                 .filter(rule -> rule.getMethods().contains(method) && rule.getUrlPattern().matcher(uri).matches()).findFirst();
         if (mRule.isPresent()) {
             if (mRule.get().getHeaderValue() != null) {

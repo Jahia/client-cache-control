@@ -28,3 +28,4 @@ rules:
   - "12;GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
   - "13;GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
   - "14;POST|DELETE|PATCH;.*;template:private"
+  - "15;GET|HEAD;.*;template:public"

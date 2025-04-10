@@ -16,12 +16,14 @@
 package org.jahia.bundles.cache.client.render;
 
 import org.apache.http.HttpHeaders;
+import org.checkerframework.checker.units.qual.C;
 import org.jahia.bundles.cache.client.api.ClientCacheService;
 import org.jahia.services.render.RenderContext;
 import org.jahia.services.render.Resource;
 import org.jahia.services.render.filter.AbstractFilter;
 import org.jahia.services.render.filter.RenderChain;
 import org.jahia.services.render.filter.RenderFilter;
+import org.jahia.services.render.filter.cache.ClientCachePolicy;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -61,6 +63,13 @@ public class ClientCacheRenderFilter extends AbstractFilter {
 
     @Override
     public String prepare(RenderContext renderContext, Resource resource, RenderChain chain) throws Exception {
+        if (renderContext.getResponse().containsHeader(HttpHeaders.CACHE_CONTROL)
+                && renderContext.getResponse().getHeader(HttpHeaders.CACHE_CONTROL).startsWith("private")) {
+            //Default render chain cache-control header policy is 'public' if any rules that goes into render chain have preset to private
+            // we need to set the policy in render chain avoiding unpredicted final cache-control header
+            LOGGER.debug("Applying predefined  'private' cache-control header policy to render context");
+            renderContext.computeClientCachePolicy(ClientCachePolicy.PRIVATE);
+        }
         return super.prepare(renderContext, resource, chain);
     }
 
