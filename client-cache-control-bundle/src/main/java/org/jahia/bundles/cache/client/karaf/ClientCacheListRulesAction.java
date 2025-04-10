@@ -35,8 +35,8 @@ import java.util.List;
  */
 @Service
 @Command(
-        scope = "client-cache-control",
-        name = "list-rules",
+        scope = "jahia",
+        name = "client-cache-list-rules",
         description = "List configured client cache control rules")
 public class ClientCacheListRulesAction implements Action {
 

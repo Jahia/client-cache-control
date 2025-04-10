@@ -37,8 +37,8 @@ import java.util.List;
  */
 @Service
 @Command(
-        scope = "client-cache-control",
-        name = "list-templates",
+        scope = "jahia",
+        name = "client-cache-list-templates",
         description = "List configured client cache control header templates")
 public class ClientCacheListTemplateAction implements Action {
 

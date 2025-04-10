@@ -18,7 +18,7 @@ describe('Cache Control config tests', () => {
     });
 
     it('TestCase 1 (ssh): List available rules', () => {
-        cy.task('sshCommand', ['client-cache-control:list-rules json']).then((result: string) => {
+        cy.task('sshCommand', ['jahia:client-cache-list-rules json']).then((result: string) => {
             const rules = JSON.parse(result);
             cy.log(JSON.stringify(rules));
             expect(rules).to.not.be.empty;
