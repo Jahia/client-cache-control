@@ -266,7 +266,7 @@ describe('Cache Control header tests', () => {
             const cache = response.headers['cache-control'];
             getJahiaVersion().then(jahiaVersion => {
                 cy.log('Test is running on jahia version: ' + jahiaVersion);
-                // Depending on Jahia version, client-cache-control is not configured the same way (strict for version 8.2.1.x and allow_overrides for >=8.2.2)
+                // Depending on Jahia version, client-cache-control is not configured the same way (strict for version 8.2.1.x and allow_overrides for >= 8.2.2)
                 if (compare(jahiaVersion.release.replace('-SNAPSHOT', ''), '8.2.2', '<')) {
                     // In version 8.2.1 the mode is strict so header is enforced by the yml config.
                     expect(cache).to.contains('private');
