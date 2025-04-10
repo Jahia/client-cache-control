@@ -1,6 +1,6 @@
 import {addNode, createSite, deleteSite, getJahiaVersion, publishAndWaitJobEnding, uploadFile} from '@jahia/cypress';
 import {addSimplePage} from '../../utils/Utils';
-import {compare} from 'compare-versions'
+import {compare} from 'compare-versions';
 
 describe('Cache Control header tests', () => {
     const targetSiteKey = 'cacheTestSite';
