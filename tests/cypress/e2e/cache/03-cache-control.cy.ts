@@ -280,15 +280,16 @@ describe('Cache Control header tests', () => {
             expect(response.headers).to.have.property('cache-control');
             const cache = response.headers['cache-control'];
             getJahiaVersion().then(jahiaVersion => {
+                console.log('Jahia version: ' + jahiaVersion);
                 cy.log('Test is running on jahia version: ' + jahiaVersion);
                 // Depending on Jahia version, client-cache-control is not configured the same way (strict for version 8.2.1.x and allow_overrides for >= 8.2.2)
                 if (compare(jahiaVersion.release.replace('-SNAPSHOT', ''), '8.2.2', '<')) {
-                    // In version 8.2.1 the mode is strict so header is enforced by the yml config.
+                    // In version 8.2.1, strict mode is activated, so header are enforced by the yml config.
                     expect(cache).to.contains('private');
                     expect(cache).to.contains('must-revalidate');
                     expect(cache).to.contains('max-age=0');
                 } else {
-                    // Until tools dedicated last-urlrewrite.xml is present and mode is overrides the header if populated by the xml file
+                    // Until tools dedicated last-urlrewrite.xml is present and mode is overrides the header is populated by the urlrewrite config file
                     expect(cache).to.contains('no-cache');
                     expect(cache).to.contains('no-store');
                     expect(cache).to.contains('max-age=0');
