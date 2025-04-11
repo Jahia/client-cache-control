@@ -20,11 +20,4 @@
   properties:
     name: 'Tools module ruleset'
     description: 'Tools module ruleset'
-    rules[0]: "8.92;GET|HEAD;(?:/[^/]+)?/modules/tools/.*;template:public-medium"
-
-- editConfiguration: 'org.jahia.bundles.cache.client.ruleset'
-  configIdentifier: 'custom'
-  properties:
-    name: 'Custom ruleset (test)'
-    description: 'Custom ruleset (test)'
-    rules[0]: "8.9;GET|HEAD;(?:/[^/]+)?/modules/client-cache-control-test-template/css/style.css;public, plop, tagada"
+    rules[0]: "8.92;GET|HEAD;(?:/[^/]+)?/modules/tools(/.*)?;template:private"
