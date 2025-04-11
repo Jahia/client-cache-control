@@ -24,7 +24,7 @@ rules:
   - "8;GET|HEAD;(?:/[^/]+)?/repository/.*;template:public-medium"
   - "9;GET|HEAD;(?:/[^/]+)?/modules/.*;template:public-medium"
   - "10;GET|HEAD;(?:/[^/]+)?/engines/.*\\.jsp(\\?.*)?;template:private"
-  - "11;GET|HEAD;(?:/[^/]+)?/tools/.*;template:private"
+  - "11;GET|HEAD;(?:/[^/]+)?/tools(/.*)?;template:private"
   - "12;GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
   - "13;GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
   - "14;POST|DELETE|PATCH;.*;template:private"
