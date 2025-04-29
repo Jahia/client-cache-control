@@ -100,7 +100,7 @@ public class ClientCacheServiceImpl implements ClientCacheService {
     }
 
     public void clearRuleSetFactory(ClientCacheFilterRuleSetFactory factory) {
-        LOGGER.info("Clearing RuleSet factory");
+        LOGGER.info("Clearing RuleSet factory {}", factory.getName());
         this.factory = null;
     }
 
@@ -133,27 +133,35 @@ public class ClientCacheServiceImpl implements ClientCacheService {
         return new ArrayList<>(cacheControlHeaderTemplates.values());
     }
 
-    @Override public String getCacheControlHeader(String method, String uri, Map<String, String> params) {
+    @Override public Optional<String> getCacheControlHeader(String method, String uri, Map<String, String> params) {
         Optional<ClientCacheFilterRule> mRule = listFilterRules().stream()
                 .filter(rule -> rule.getMethods().contains(method) && rule.getUrlPattern().matcher(uri).matches()).findFirst();
         if (mRule.isPresent()) {
             if (mRule.get().getHeaderValue() != null) {
                 LOGGER.debug("[{} - {}] matched with rule {}, returning header: {}", method, uri, mRule.get(), mRule.get().getHeaderValue());
-                return mRule.get().getHeaderValue();
+                return Optional.of(mRule.get().getHeaderValue());
             }
             if (mRule.get().getHeaderTemplate() != null) {
                 String headerValue = cacheControlHeaderTemplates.getOrDefault(mRule.get().getHeaderTemplate(), ClientCacheFilterTemplate.EMPTY).getFilteredTemplate(params);
                 LOGGER.debug("[{} - {}] matched with rule {}, returning header: {}", uri, method, mRule.get(), headerValue);
-                return headerValue;
+                return Optional.of(headerValue);
             }
         }
-        return "";
+        return Optional.empty();
     }
 
-    @Override public String getCacheControlHeader(String templateName, Map<String, String> params) {
-        String headerValue = cacheControlHeaderTemplates.getOrDefault(templateName, ClientCacheFilterTemplate.EMPTY).getFilteredTemplate(params);
-        LOGGER.debug("TemplateName {} returned header value: {}", templateName, headerValue);
-        return headerValue;
+    @Override public Optional<String> getCacheControlHeader(String templateName, Map<String, String> params) {
+        if (cacheControlHeaderTemplates.containsKey(templateName)) {
+            String headerValue = cacheControlHeaderTemplates.get(templateName).getFilteredTemplate(params);
+            LOGGER.debug("TemplateName {} returned header value: {}", templateName, headerValue);
+            return Optional.of(headerValue);
+        }
+        LOGGER.warn("TemplateName {} not found", templateName);
+        return Optional.empty();
+    }
+
+    @Override public String getDefaultCacheControlHeader() {
+        return cacheControlHeaderTemplates.get(ClientCacheFilterTemplate.DEFAULT).getTemplate();
     }
 
     private Map<String, ClientCacheFilterTemplate> computeCacheControlHeaderTemplates(Config config) {

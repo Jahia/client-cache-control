@@ -16,7 +16,6 @@
 package org.jahia.bundles.cache.client.render;
 
 import org.apache.http.HttpHeaders;
-import org.checkerframework.checker.units.qual.C;
 import org.jahia.bundles.cache.client.api.ClientCacheService;
 import org.jahia.services.render.RenderContext;
 import org.jahia.services.render.Resource;
@@ -31,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Apply the client cache policy for resources served by the render chain.
@@ -42,11 +42,11 @@ public class ClientCacheRenderFilter extends AbstractFilter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientCacheRenderFilter.class);
 
-    private ClientCacheService service;
+    private ClientCacheService clientCacheService;
 
     @Reference(service = ClientCacheService.class)
-    public void setService(ClientCacheService service) {
-        this.service = service;
+    public void setClientCacheService(ClientCacheService clientCacheService) {
+        this.clientCacheService = clientCacheService;
     }
 
     @Activate
@@ -76,11 +76,15 @@ public class ClientCacheRenderFilter extends AbstractFilter {
     @Override
     public String execute(String previousOut, RenderContext renderContext, Resource resource, RenderChain chain) throws Exception {
         LOGGER.debug("Client Cache Policy Level set to {} with a TTL of {}", renderContext.getClientCachePolicy().getLevel().getValue(), renderContext.getClientCachePolicy().getTtl());
-        String cacheControl = service.getCacheControlHeader(renderContext.getClientCachePolicy().getLevel().getValue(),
+        Optional<String> cacheControl = clientCacheService.getCacheControlHeader(renderContext.getClientCachePolicy().getLevel().getValue(),
                 Map.of(ClientCacheService.CC_CUSTOM_TTL_ATTR, Integer.toString(renderContext.getClientCachePolicy().getTtl())));
-        LOGGER.debug("Setting Response Cache-Control to: {}", cacheControl);
-        // Use the Force-Cache-Control header to bypass strict mode because render chain cache control modification must be enforced whatever mode is used.
-        renderContext.getResponse().setHeader("Force-".concat(HttpHeaders.CACHE_CONTROL), cacheControl);
+        if (cacheControl.isPresent()) {
+            LOGGER.debug("Setting Response Cache-Control to: {}", cacheControl.get());
+            // Use the Force-Cache-Control header to bypass strict mode because render chain cache control modification must be enforced whatever mode is used.
+            renderContext.getResponse().setHeader("Force-".concat(HttpHeaders.CACHE_CONTROL), cacheControl.get());
+        } else {
+            LOGGER.warn("Unable to find cache control value for render context client cache policy level: {}", renderContext.getClientCachePolicy().getLevel().getValue());
+        }
         return super.execute(previousOut, renderContext, resource, chain);
     }
 
