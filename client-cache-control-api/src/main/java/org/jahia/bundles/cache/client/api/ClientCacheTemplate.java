@@ -25,13 +25,13 @@ public abstract class ClientCacheTemplate {
      *
      * @return name
      */
-    abstract public String getName();
+    public abstract String getName();
 
     /**
      * The template value to use.
      *
      * @return the template value
      */
-    abstract public String getTemplate();
+    public abstract String getTemplate();
 
 }

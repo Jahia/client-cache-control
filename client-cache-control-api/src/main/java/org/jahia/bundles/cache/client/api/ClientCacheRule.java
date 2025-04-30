@@ -16,7 +16,6 @@
 package org.jahia.bundles.cache.client.api;
 
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * @author Jerome Blanchard
@@ -28,21 +27,21 @@ public abstract class ClientCacheRule {
      *
      * @return the priority
      */
-    abstract public float getPriority();
+    public abstract float getPriority();
 
     /**
      * A set of methods that the rule can be applied.
      *
      * @return the set of methods names
      */
-    abstract public Set<String> getMethods();
+    public abstract Set<String> getMethods();
 
     /**
      * A URL regular expression that the rule can be applied to.
      *
      * @return the regexp
      */
-    abstract public String getUrlRegexp();
+    public abstract String getUrlRegexp();
 
     /**
      * A cache control header
@@ -51,6 +50,6 @@ public abstract class ClientCacheRule {
      *
      * @return the header value
      */
-    abstract public String getHeader();
+    public abstract String getHeader();
 
 }

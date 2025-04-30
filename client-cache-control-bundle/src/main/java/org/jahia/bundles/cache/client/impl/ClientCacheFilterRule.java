@@ -38,6 +38,7 @@ public class ClientCacheFilterRule extends ClientCacheRule implements Comparable
     private String header;
 
     public ClientCacheFilterRule() {
+        super();
     }
 
     public String getRuleSetKey() {

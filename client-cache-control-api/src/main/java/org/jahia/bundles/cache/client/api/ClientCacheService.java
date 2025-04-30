@@ -18,6 +18,7 @@ package org.jahia.bundles.cache.client.api;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Jerome Blanchard
@@ -34,7 +35,9 @@ public interface ClientCacheService {
 
     Collection<ClientCacheTemplate> listHeaderTemplates();
 
-    String getCacheControlHeader(String method, String uri, Map<String, String> templateParams);
+    String getDefaultCacheControlHeader();
 
-    String getCacheControlHeader(String template, Map<String, String> templateParams);
+    Optional<String> getCacheControlHeader(String method, String uri, Map<String, String> templateParams);
+
+    Optional<String> getCacheControlHeader(String template, Map<String, String> templateParams);
 }
