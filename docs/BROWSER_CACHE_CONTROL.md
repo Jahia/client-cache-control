@@ -7,18 +7,23 @@ content:
   $subpath: document-area/text-3
 ---
 
-Installed by default, Jahia Client Cache Control module ensures that browsers and intermediates will have adapted information from Jahia (in response headers) to cache content on their side.
+Installed by default, Jahia Client Cache Control module ensures that browsers and intermediates will have adapted information from Jahia 
+to cache content on their side. This information is commonly inserted in HTTP response headers. Depending on the Jahia content that is 
+return to the client's browser, the headers to setup browser cache behavior will be finely tuned to ensure the best strategy and performances.
 
 ### Overview
 
-The Client Cache Control feature manages the HTTP `Cache-Control` header for all resources served by Jahia. It makes sure that browsers, proxies and CDNs receive cache directives that are consistent with how Jahia actually caches and personalizes content.
+The Client Cache Control feature manages the HTTP `Cache-Control` header for all resources served by Jahia. It makes sure that browsers, 
+proxies and CDNs receive cache directives that are consistent with how Jahia actually caches and personalizes content.
 
 In practice, the module lets you:
 
-- Define cache policies per **URL pattern** and **HTTP method** using a YAML ruleset.
-- Align the browser / CDN cache behavior with the **Jahia fragment cache** (RenderChain and AggregateCacheFilter).
+- Define Cache-Control response header **templates**. 
+- Define Client Cache Policies per **URL pattern** and **HTTP method** using a YAML **ruleset**.
+- Define **Client Cache Fragment Policy** for fine grain content that will be computed in the global Jahia page to determine the page **Client Cache Policy**.  
+- At the end of request processing, apply defined **templates** on the response headers according the resulted **Client Cache Policy**.
 - Choose between different **modes** of operation (strict enforcement vs allow overrides).
-- Expose/cache rules and templates through a **Java service** and **GraphQL API**
+- Expose cache ruleset and templates through a **Java service** and **GraphQL API**
 
 ### Architecture
 
@@ -32,6 +37,7 @@ The high-level request flow is:
 
 1. **HTTP request received – ClientCacheFilter**
    - The request is intercepted early by `ClientCacheFilter` (a servlet filter applied on `pattern=/*`).
+   - The filter enforces a response's wrapper to ensure complete control on the response header.
    - The filter looks up a matching rule based on the HTTP method and request URI.
    - If a rule matches, it **pre‑sets** a `Cache-Control` header on the response using either:
      - a **template** (e.g. `template:public`, `template:private`), or
@@ -39,15 +45,15 @@ The high-level request flow is:
    - If no rule matches and the response has no `Cache-Control` header yet, a **default header** is applied.
 
 2. **Request continues to a servlet or to the RenderChain**
-   - For some URLs, a dedicated servlet can still override the header when needed (e.g. `CsrfServlet`).
+   - For servlet URLs, preset header won't change if **strict mode** is set.
    - For page rendering, the request enters Jahia's **RenderChain**.
    - At RenderContext creation time, a default **public client cache policy** is set on the `RenderContext`.
 
 3. **Fragment rendering and fragment policies**
    - For each fragment rendered, the `AggregateCacheFilter`:
-     - evaluates **cache key parts** via `CacheKeyPartGenerator`s to determine if the fragment requires a `private` level of caching (e.g. user‑specific fragments).
+     - evaluates **cache key parts** via `CacheKeyPartGenerator`s to determine if the fragment requires a more restrictive level of caching (e.g. user‑specific fragments).
      - computes a `ClientCacheFragmentPolicy` and stores it as a property of the fragment's `CacheEntry`.
-   - On cache hits, the computed fragment policy is retrieved from the `CacheEntry` instead of recomputing it.
+   - On fragment cache hits, the computed fragment policy is retrieved from the `CacheEntry` instead of recomputing it.
 
 4. **Enforcing fragment policies on the RenderContext**
    - While rendering all fragments, `AggregateCacheFilter` merges fragment policies into the **global client cache policy** on the `RenderContext`.
@@ -56,8 +62,8 @@ The high-level request flow is:
 5. **Render filter applies final policy – ClientCacheRenderFilter**
    - At the end of the RenderChain, `ClientCacheRenderFilter` reads the final `ClientCachePolicy` from the `RenderContext` (level + TTL).
    - It then calls `ClientCacheService.getCacheControlHeader(...)` with:
-     - the policy **level** (e.g. `public`, `private`), and
-     - a custom TTL parameter (`jahiaClientCacheCustomTTL`).
+     - the policy **level** (e.g. `public`, `public-medium`, `custom`, `private`), and
+     - a custom TTL parameter (`jahiaClientCacheCustomTTL`) if needed.
    - If a suitable template exists, the filter sets a special `Force-Cache-Control` header on the response.
      - This is used to **enforce** the RenderChain policy even when the service is in strict mode (see below).
 
@@ -67,107 +73,69 @@ The high-level request flow is:
      - the actual fragment cache policy (public vs private),
      - the effective TTL.
 
-### Core Java API
+### Client Cache Control templates
 
-All API classes live in `org.jahia.bundles.cache.client.api` (module `client-cache-control-api`). The key types are:
+Client cache control defines 5 levels of Cache-Control header templates that can be used in the ruleset. Even if it is not needed to change
+the default values of those templates, as it is defined using OSGI configuration it can be modified using the `tools` interface of Jahia to 
+access OSGI configuration with pid `org.jahia.bundles.cache.client`
 
-#### `ClientCacheService`
+For a complete description of options that can be setup in the Cache-Control response header, please consult a [online reference documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control)
 
-The central service used by filters and external integrations:
+#### Template 'private'
 
-- **Constants**:
-  - `CC_SET_ATTR` – Request attribute indicating that a client cache header was already set.
-  - `CC_ORIGINAL_REQUEST_URI_ATTR` – Stores the original request URI (before rewrites).
-  - `CC_CUSTOM_TTL_ATTR` – Request/template parameter key used to pass a custom TTL.
-- **Configuration & inspection**:
-  - `ClientCacheMode getMode()` – Returns the current mode (e.g. strict or allow overrides).
-  - `List<ClientCacheRule> listRules()` – Lists all active rules.
-  - `Collection<ClientCacheTemplate> listHeaderTemplates()` – Lists available header templates.
-  - `String getDefaultCacheControlHeader()` – Returns the default header value used as fallback.
-- **Header resolution**:
-  - `Optional<String> getCacheControlHeader(String method, String uri, Map<String,String> templateParams)`
-    - Finds the best matching rule for a method + URI, then resolves the appropriate header.
-  - `Optional<String> getCacheControlHeader(String templateName, Map<String,String> templateParams)`
-    - Resolves a header for a given template name (e.g. `public`, `private`, `immutable`).
+```
+Cache-Control = "private, no-cache, no-store, must-revalidate, proxy-revalidate, max-age=0";
+```
 
-#### `ClientCacheRule`
+Private value is the most restrictive template. 
+It is dedicated to resources that are not cacheable by either intermediates (proxy, cdn) and client's browsers. 
+It must be applied on resources that could contain personal or sensitive information.
 
-An abstract description of a cache rule:
+#### Template 'custom'
 
-- `float getPriority()` – Rule priority; lower numbers mean higher priority.
-- `Set<String> getMethods()` – Allowed HTTP methods for the rule.
-- `String getUrlRegexp()` – Java regular expression applied to `request.getRequestURI()`.
-- `String getHeader()` – Either:
-  - `template:<name>` to refer to a `ClientCacheTemplate`, or
-  - a full `Cache-Control` header value to apply as‑is.
+```
+"public, must-revalidate, max-age=1, s-maxage=%%jahiaClientCacheCustomTTL%%, stale-while-revalidate=15";
+```
 
-Implementations of this abstract class are created from configuration (e.g. YAML rules) in the implementation bundle.
+Custom value is a variant of the public caching strategy with some placeholders that allows customizing the cache duration in intermediates (proxy, cdn).
+The client's browser max-age is set to 1s ensuring that the client is going to ask for a newer version of the resource mostly on each request. 
+Anyway, for better performances, resource will be cached a little bit longer in intermediates (cdn) to absorb high load on that kind of resources. 
+That intermediate cache duration is determine using the Jahia Cache Fragment 
+It is used in Jahia pages with template that does not contain private content but a custom cache duration. 
 
-#### Other API types
+#### Template 'public'
 
-- `ClientCacheMode` – Enum representing the global mode (e.g. `STRICT`, `ALLOW_OVERRIDES`, possibly `DISABLED`).
-- `ClientCacheTemplate` – Describes a named header template (e.g. `public`, `public-medium`, `private`, `immutable`) and how it expands into a concrete `Cache-Control` string (including TTL and directives).
-- `ClientCacheAction` – Represents possible cache actions (invalidation, refresh, etc.).
-- `ClientCacheInvalidationProvider` – SPI for services that propagate invalidations to external systems (e.g. CloudFront).
-- `ClientCacheException` – Custom exception type for this module.
+```
+"public, must-revalidate, max-age=1, s-maxage=##short.ttl##, stale-while-revalidate=15";
+```
 
-### Implementation details and filters
+Most commonly used strategy for content that can change (pages) but does not contains private or sensitive information. 
+This type of resource will be cached in intermediates (CDN) with a duration that is tolerant to update. 
+It means that if page is updated, users that queries that page over a CDN server may have a stale version of the page during a time < to the `short.ttl` value.
+By default, the **short.ttl = 60s** meaning that it can take a minute for a page modification to be visible to all users.
 
-The implementation bundle (`client-cache-control-bundle`) contains the actual filters, service implementations and configuration logic.
+#### Template 'public-medium'
 
-#### Servlet filter: `ClientCacheFilter`
+```
+"public, must-revalidate, max-age=1, s-maxage=##medium.ttl##, stale-while-revalidate=15";
+```
 
-Package: `org.jahia.bundles.cache.client.filter`.
+This template is a very simple variant of the public one but with a longer caching time in CDN, about 10 minutes.
+It is meant to be used with pages or site that does not requires a very fast page update propagation.
+By default, the **medium.ttl = 600s** meaning that it can take 10 minutes for a page modification to be visible to all users.
 
-- Registered as an OSGi component:
-  - Service type: `AbstractServletFilter`.
-  - Properties: `pattern=/*`, `immediate = true`.
-  - Order: `-3f` (runs early in the filter chain).
-- Behavior:
-  1. Wraps the response in `ClientCacheResponseWrapper` to control header changes.
-  2. Stores `jahiaOriginalRequestURI` on the request.
-  3. Queries `ClientCacheService.getCacheControlHeader(method, uri, emptyMap)`.
-     - If a match is found:
-       - Sets `Cache-Control` to the resolved value.
-       - If mode is `STRICT`:
-         - Marks filtered headers as read‑only in the wrapper.
-         - Sets `jahiaCacheControlSet = "done"` (for legacy rewrite rules).
-     - If no match and the response has no `Cache-Control` yet:
-       - Uses `getDefaultCacheControlHeader()` and sets it.
-     - If a `Cache-Control` header already exists and there is no matching rule, it is left untouched (with a warning log).
-  4. Invokes the remaining filter chain.
-  5. After the chain returns, it checks whether the header was modified compared to the preset value:
-     - In `ALLOW_OVERRIDES` mode, this is logged as debug.
-     - In `STRICT` mode, any override/removal is logged as an error.
+#### Template 'immutable'
 
-This filter essentially enforces URL‑ and method‑based presets while tracking and optionally forbidding overrides from other components.
+```
+"public, max-age=##immutable.ttl##, s-maxage=##immutable.ttl##, stale-while-revalidate=15, immutable";
+```
 
-#### Render filter: `ClientCacheRenderFilter`
+The `immutable` template is dedicated to resources that are never supposed to change (aka when the url is unique, and will change if the content changes).
+All static resources included in pages using the Resource tag are stored and included using unique URLs that will change on any update. Thus, the content 
+can be cached into client forever without even asking if content has changed.
+It the most efficient caching strategy but requires unique URLs or filenames.
 
-Package: `org.jahia.bundles.cache.client.render`.
-
-- Registered as a Jahia `RenderFilter` and OSGi component.
-- Activated with:
-  - Priority `-1.5f`.
-  - Disabled in edit mode.
-  - Skipped on AJAX requests.
-  - Applied only on configuration `page` and template types `html, html-*`.
-
-Behavior:
-
-- `prepare(...)` phase:
-  - If the response already contains a `Cache-Control` header starting with `private`, it calls:
-    - `renderContext.computeClientCachePolicy(ClientCachePolicy.PRIVATE)`.
-  - This ensures that the internal fragment cache policy is aligned with the header already set earlier.
-
-- `execute(...)` phase:
-  1. Logs the final `ClientCachePolicy` (level + TTL) computed by Jahia for the page and all its fragments.
-  2. Calls `ClientCacheService.getCacheControlHeader(level, Map.of(CC_CUSTOM_TTL_ATTR, ttl))`.
-  3. If a suitable header is found, sets `Force-Cache-Control` on the response.
-     - This bypasses strict mode rules for preset headers because the final RenderChain policy must always be enforced.
-  4. If no header is found for the given level, logs a warning.
-
-The result is that the final browser/ CDN caching behavior is determined both by URL rules and by actual fragment behavior.
+ALl those templates can then be used in Client Cache Rules to enforce the expected Cache-Control header on Jahia's resources.
 
 ### Configuration via YAML ruleset
 
@@ -226,28 +194,30 @@ Rules are loaded, merged (with rules coming from other modules, if any), ordered
 
 #### Where to place and how to customize the ruleset
 
-- The default ruleset is packaged inside the implementation bundle.
-- In a typical Jahia installation, you can:
-  - copy this YAML file to Karaf's configuration directory (e.g. `/var/jahia/karaf/etc`), or
-  - manage it via OSGi ConfigAdmin.
-- Once externalized, you can safely adjust or add rules without touching the bundle itself.
+The default ruleset is packaged inside the implementation bundle and does not need to be changed unless you know exactly what you are doing.
+
+For Jahia module's custom cache content behavior rules, you can provide another ruleset that it will be combined with the default one (and all other module's one)
+Module's custom rule set must be paced in the `/resources/META-INF/configurations` and must follow naming convention: `org.jahia.bundles.cache.client.ruleset-<yourmodulename>.yml`
+
+Rules are combined using a priority, thus, depending of which URLs you want to customize, you'll have to find the best priority to insert your rules in the default ruleset.
+Rule priority is a **floating** number so you will always be able to insert your rule at the place you want using a classic ordering (8,99 < 9).
 
 **Typical tuning examples**:
 
-1. **Highly cacheable marketing landing page**
+1. **Immutable module embedded resource**
 
-   - Suppose your marketing homepage lives at `/cms/render/live/en/sites/mysite/landing`.
-   - You can add a high‑priority rule with a dedicated template:
+   - Suppose your module contain angular js code that have a changing filename on each generation
+   - Angular js code lives at `/modules/<yourmodulename>/js/uniquefilename.js`.
+   - You can add a immutable rule with a dedicated template:
 
    ```yaml
-   - "0.5;GET|HEAD;(?:/[^/]+)?/cms/render/live/.*/sites/mysite/landing.*;template:public-long"
+   - "8.99;GET|HEAD;(?:/[^/]+)?/modules/<yourmodulename>/js/uniquefilename.js;template:immutable"
    ```
 
-   - Then define `public-long` in the `ClientCacheService` configuration to use a long TTL.
 
-2. **Sensitive page with no cache at all**
+2. **Resource with cache need that is not available as a template**
 
-   - For a secure page, you can use a literal header value instead of a template:
+   - For a really custom page caching strategy, you can use also use literal header value instead of a template:
 
    ```yaml
    - "0.2;GET|HEAD;(?:/[^/]+)?/cms/render/live/.*/sites/mysite/secure.*;no-store,no-cache,must-revalidate"
@@ -255,82 +225,20 @@ Rules are loaded, merged (with rules coming from other modules, if any), ordered
 
 3. **Custom static assets directory**
 
-   - To treat a subset of files as immutable:
+   - If you use the media library to upload files with unique name and want to treat that subset of files as immutable:
 
    ```yaml
    - "6.5;GET|HEAD;(?:/[^/]+)?/files/static-assets/.*;template:immutable"
    ```
 
-### Installation and deployment
-
-The feature is **included by default** in supported Jahia versions (>= 8.2.2.0). However, you may want to deploy a specific version or patch.
-
-#### Build
-
-From the project root:
-
-```bash
-mvn clean install
-```
-
-This produces:
-
-- `client-cache-control-api/target/org.jahia.bundles.client-cache-control-api-<version>.jar`
-- `client-cache-control-bundle/target/org.jahia.bundles.client-cache-control-impl-<version>.jar`
-- `client-cache-control-feature/target/client-cache-control-<version>.kar`
-- Additional bundles (`client-cache-control-graphql`, `client-cache-control-cloudfront`) if enabled.
-
-#### Deploying using a Karaf feature (kar file)
-
-> **Note:** This is not recommended for regular usage, but can be useful for development or testing.
-
-```bash
-docker cp ./client-cache-control-feature/target/client-cache-control-<version>.kar \
-  jahia:/var/jahia/karaf/deploy
-```
-
-Karaf will install the feature and deploy the included bundles. Be aware that having multiple versions of the same bundles in the container can lead to unexpected behavior.
-
-#### Deploying bundles individually
-
-You can update the API and implementation bundles separately:
-
-- API bundle:
-
-```bash
-docker cp ./client-cache-control-api/target/org.jahia.bundles.client-cache-control-api-<version>.jar \
-  jahia:/var/jahia/karaf/deploy
-```
-
-- Implementation bundle:
-
-```bash
-docker cp ./client-cache-control-bundle/target/org.jahia.bundles.client-cache-control-impl-<version>.jar \
-  jahia:/var/jahia/karaf/deploy
-```
-
-#### Deploying the configuration file
-
-You can deploy or update the default ruleset configuration as well:
-
-```bash
-docker cp ./client-cache-control-bundle/target/classes/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-default.yml \
-  jahia:/var/jahia/karaf/deploy
-```
-
-In a typical setup, you would instead place (and maintain) this file under `karaf/etc` so that it participates cleanly in OSGi configuration management.
+You must use a priority that is lower than the one that match a larger URL to ensure that it will be applied as expected: 
+If a rule exists for /modules/.* with a priority of 9, you will have to place all your more specific /modules rules with a priority lower 
+(8.5 for example). If any other specific rule exist in your Jahia instance, you may use a more precise number to place your rule at the expected
+rank (8.5111). 
 
 ### GraphQL API
 
 The `client-cache-control-graphql` module exposes a GraphQL API (via Jahia's `graphql-dxm-provider`) to inspect and possibly manage client cache rules and templates.
-
-Key classes:
-
-- `GqlClientCacheRule` – GraphQL type for cache rules (priority, methods, URL regexp, header/template).
-- `GqlClientCacheTemplate` – GraphQL type for header templates.
-- `GqlClientCacheControl` – Root object grouping cache‑related fields.
-- `GqlClientCacheExtensionProvider` – Registers the extension into the GraphQL schema.
-- `JahiaAdminQueryExtension` – Exposes the functionality under an admin namespace.
 
 Typical usage (conceptual example):
 
@@ -358,74 +266,29 @@ query {
 
 - Depending on version, mutations may be provided to update templates or rules. These operations should be restricted to administrators.
 
-### CloudFront integration
-
-The `client-cache-control-cloudfront` module provides a service that integrates with **AWS CloudFront** using the AWS SDK v2 (`software.amazon.awssdk:cloudfront`).
-
-- `CloudFrontClientService` – OSGi service for interacting with CloudFront (e.g. triggering invalidations, mapping Jahia paths to CloudFront distribution paths).
-- `CloudFrontClientServiceException` – Custom exception for CloudFront-related failures (authentication, rate limiting, invalid parameters, etc.).
-
-This integration is meant to complement the client cache control logic by:
-
-- letting CloudFront **respect** the origin `Cache-Control` headers produced by the module, and
-- allowing Jahia to request **explicit invalidations** in CloudFront when content is updated.
-
-To use it, you must:
-
-- configure AWS credentials and CloudFront distribution IDs via OSGi configuration,
-- ensure your CloudFront behaviors are set to consider the `Cache-Control` header from the origin,
-- possibly implement a `ClientCacheInvalidationProvider` that delegates to `CloudFrontClientService`.
-
-### Testing and validation
-
-The repository includes:
-
-- A **Jahia test module** under `tests/jahia-module` that deploys content/templates designed to exercise various cache scenarios.
-- **Cypress end-to-end tests** under `tests/cypress` that:
-  - hit different URLs (live pages, preview/edit, admin, assets, etc.),
-  - verify the produced `Cache-Control` headers.
-
-The README in the root `tests` folder suggests:
-
-```bash
-cd tests/jahia-module
-mvn clean package
-
-docker cp ./target/client-cache-control-test-template-<version>.jar \
-  jahia:/var/jahia/modules
-
-cd ..
-./set-env.sh
-yarn install
-yarn run e2e:debug
-```
-
-These tests are a good starting point to understand the expected default behavior and to validate your own tuning.
-
 ### Limitations, pitfalls and best practices
 
 **Limitations**
 
-- The module focuses on `Cache-Control` (and a special `Force-Cache-Control`) and does not manage `ETag`, `Last-Modified` or full CDN provisioning.
+- The module focuses on `Cache-Control` (and a special `Force-Cache-Control`) and does not manage `ETag`, `Last-Modified`. Those aspects are 
+  dependant of the resource's content and are treated in ach specific Servlet accordingly.
 - It relies on Jahia internals (RenderChain, AggregateCacheFilter, `ClientCachePolicy`) and is not designed to be used standalone.
 
 **Common pitfalls**
 
-- **Multiple bundle versions**:
-  - Deploying multiple versions of the same client cache bundles in Karaf can lead to unpredictable behavior.
 - **Overly broad or high-priority rules**:
   - A single, very generic high-priority rule can accidentally make many pages `public` or `private` when they should not be.
 - **Misunderstanding strict mode**:
   - In `STRICT` mode, any component overriding the preset `Cache-Control` header will trigger error logs.
-- **Fragment vs. page policy mismatch**:
-  - Setting long TTLs for pages that contain personalized fragments may cause user-specific content to be cached in shared caches if the fragment policy is not correctly propagated.
 
 **Best practices**
 
 - Start from the **default ruleset** and adjust gradually.
 - Enable DEBUG logging for `ClientCacheFilter` and `ClientCacheRenderFilter` in non‑production environments to observe how rules and policies are applied.
 - Use the **GraphQL API** to audit current rules, templates and mode before making major changes.
-- When using **CloudFront**:
-  - Configure it to honor origin `Cache-Control` headers.
-  - Use invalidation mechanisms (possibly via `CloudFrontClientService`) for content that must be refreshed ahead of TTL expiry.
 - Document your custom rules and templates so other teams (ops, integrators, developers) understand the cache strategy.
+
+### Sample demonstration module
+
+A sample module that demonstrate common specific Cache-Control header cache usage is available in the [OSGI-modules-samples project](https://github.com/Jahia/OSGI-modules-samples) 
+in the `client-cache-sample` module.
