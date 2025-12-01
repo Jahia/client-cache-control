@@ -2,7 +2,7 @@
 
 ### Overview
 
-![Client Cache Bundle Overview](./doc/ClientCacheBundle.jpg)
+![Client Cache Bundle Overview](./docs/ClientCacheBundle.jpg)
 
 1. The HTTP request is received and intercepted by the ClientCacheFilter
     1. Depending on the configured ClientCacheFilterRule and the request URL some specific Cache-Control header is preset on the response
