@@ -4,7 +4,7 @@ For caching behavior, Jahia Client-Cache-Control will integrate silently with an
 control intermediates behavior (s-max-age). 
 Anyway, in specific cases, it can be needed to **invalidate** all or a part of the cache. 
 
-As the invalidation is specific to a CDN provider, a dedicated bundle is used : The `client-cache-control-cloudfront` module provides a 
+As the invalidation is specific to a CDN provider, a dedicated bundle is used: The `client-cache-control-cloudfront` module provides a 
 service that integrates with **AWS CloudFront** using the AWS SDK v2 (`software.amazon.awssdk:cloudfront`).
 
 - `CloudFrontClientService` – OSGi service for interacting with CloudFront (e.g. triggering invalidations, mapping Jahia paths to CloudFront distribution paths).

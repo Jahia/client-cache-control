@@ -133,9 +133,9 @@ By default, the **medium.ttl = 600s** meaning that it can take 10 minutes for a 
 The `immutable` template is dedicated to resources that are never supposed to change (aka when the url is unique, and will change if the content changes).
 All static resources included in pages using the Resource tag are stored and included using unique URLs that will change on any update. Thus, the content 
 can be cached into client forever without even asking if content has changed.
-It the most efficient caching strategy but requires unique URLs or filenames.
+It is the most efficient caching strategy but requires unique URLs or filenames.
 
-ALl those templates can then be used in Client Cache Rules to enforce the expected Cache-Control header on Jahia's resources.
+All those templates can then be used in Client Cache Rules to enforce the expected Cache-Control header on Jahia's resources.
 
 ### Configuration via YAML ruleset
 
@@ -197,7 +197,7 @@ Rules are loaded, merged (with rules coming from other modules, if any), ordered
 The default ruleset is packaged inside the implementation bundle and does not need to be changed unless you know exactly what you are doing.
 
 For Jahia module's custom cache content behavior rules, you can provide another ruleset that it will be combined with the default one (and all other module's one)
-Module's custom rule set must be paced in the `/resources/META-INF/configurations` and must follow naming convention: `org.jahia.bundles.cache.client.ruleset-<yourmodulename>.yml`
+Module's custom rule set must be placed in the `/resources/META-INF/configurations` and must follow naming convention: `org.jahia.bundles.cache.client.ruleset-<yourmodulename>.yml`
 
 Rules are combined using a priority, thus, depending of which URLs you want to customize, you'll have to find the best priority to insert your rules in the default ruleset.
 Rule priority is a **floating** number so you will always be able to insert your rule at the place you want using a classic ordering (8,99 < 9).
@@ -271,7 +271,7 @@ query {
 **Limitations**
 
 - The module focuses on `Cache-Control` (and a special `Force-Cache-Control`) and does not manage `ETag`, `Last-Modified`. Those aspects are 
-  dependant of the resource's content and are treated in ach specific Servlet accordingly.
+  dependent on the resource's content and are treated in each specific Servlet accordingly.
 - It relies on Jahia internals (RenderChain, AggregateCacheFilter, `ClientCachePolicy`) and is not designed to be used standalone.
 
 **Common pitfalls**
