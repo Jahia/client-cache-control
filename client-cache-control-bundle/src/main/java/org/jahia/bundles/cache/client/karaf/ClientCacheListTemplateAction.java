@@ -22,12 +22,10 @@ import org.apache.karaf.shell.api.action.Command;
 import org.apache.karaf.shell.api.action.lifecycle.Reference;
 import org.apache.karaf.shell.api.action.lifecycle.Service;
 import org.apache.karaf.shell.support.table.ShellTable;
-import org.jahia.bundles.cache.client.api.ClientCacheRule;
 import org.jahia.bundles.cache.client.api.ClientCacheService;
 import org.jahia.bundles.cache.client.api.ClientCacheTemplate;
 
 import java.util.Collection;
-import java.util.List;
 
 /**
  * Karaf command to list current configured filtering rules.
