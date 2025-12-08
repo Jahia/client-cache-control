@@ -7,9 +7,7 @@ content:
   $subpath: document-area/text-3
 ---
 
-Installed by default, Jahia Client Cache Control module ensures that browsers and intermediates will have adapted information from Jahia 
-to cache content on their side. This information is commonly inserted in HTTP response headers. Depending on the Jahia content that is 
-return to the client's browser, the headers to setup browser cache behavior will be finely tuned to ensure the best strategy and performances.
+Installed by default, the Jahia Client Cache Control module ensures that browsers and intermediaries get accurate cache instructions from Jahia, through HTTP response headers. Depending on the content returned (pages, images, code assets), the headers will be finely tuned to ensure the best strategy and performance.
 
 ### Overview
 
@@ -27,9 +25,9 @@ In practice, the module lets you:
 
 ### Architecture
 
-A high-level architecture diagram shows principles of integration in the current version:
+A high-level architecture diagram shows the principles of integration in the current version:
 
-//TODO add the image link
+![ClientCacheBundle Architecture](./ClientCacheBundle.jpg)
 
 ### Request flow and runtime behavior
 
@@ -68,16 +66,14 @@ The high-level request flow is:
      - This is used to **enforce** the RenderChain policy even when the service is in strict mode (see below).
 
 6. **Client receives a coherent Cache-Control header**
-   - The browser / CDN finally sees a `Cache-Control` header that reflects:
+   - The browser and CDN finally see a `Cache-Control` header that reflects:
      - the URL / method based rules,
      - the actual fragment cache policy (public vs private),
      - the effective TTL.
 
 ### Client Cache Control templates
 
-Client cache control defines 5 levels of Cache-Control header templates that can be used in the ruleset. Even if it is not needed to change
-the default values of those templates, as it is defined using OSGI configuration it can be modified using the `tools` interface of Jahia to 
-access OSGI configuration with pid `org.jahia.bundles.cache.client`
+Client cache control defines 5 levels of Cache-Control header templates that can be used in the ruleset. Even if it is unnecessary to change the default values of those templates, as it is defined using OSGI configuration, it can be modified using the `tools` interface of Jahia to access OSGI configuration with pid `org.jahia.bundles.cache.client`
 
 For a complete description of options that can be setup in the Cache-Control response header, please consult a [online reference documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control)
 
@@ -99,9 +95,9 @@ It must be applied on resources that could contain personal or sensitive informa
 
 Custom value is a variant of the public caching strategy with some placeholders that allows customizing the cache duration in intermediates (proxy, cdn).
 The client's browser max-age is set to 1s ensuring that the client is going to ask for a newer version of the resource mostly on each request. 
-Anyway, for better performances, resource will be cached a little bit longer in intermediates (cdn) to absorb high load on that kind of resources. 
-That intermediate cache duration is determine using the Jahia Cache Fragment 
-It is used in Jahia pages with template that does not contain private content but a custom cache duration. 
+Anyway, for better performances, resource will be cached a little bit longer in intermediates (cdn) to absorb a high load on such resources.
+If any fragment of the page holds a custom cache expiration property, the `jahiaClientCacheCustomTTL` parameter is set to smaller one of those computed for that page.
+The jahiaClientCacheCustomTTL parameter is retrieved from the jahia template's cache.expiration property (see [managing cache in Jahia](/documentation/jahia-cms/jahia-8.2/developer/rendering-pages-and-content/managing-caching-in-jahia) page for more details about that property).
 
 #### Template 'public'
 
@@ -109,9 +105,9 @@ It is used in Jahia pages with template that does not contain private content bu
 "public, must-revalidate, max-age=1, s-maxage=##short.ttl##, stale-while-revalidate=15";
 ```
 
-Most commonly used strategy for content that can change (pages) but does not contains private or sensitive information. 
-This type of resource will be cached in intermediates (CDN) with a duration that is tolerant to update. 
-It means that if page is updated, users that queries that page over a CDN server may have a stale version of the page during a time < to the `short.ttl` value.
+The most commonly used strategy for content that can change (pages) but does not contain private or sensitive information. 
+Client's browser will always check for a newer version of the resource (max-age=1) but intermediates (CDN, proxy) will cache the resource for a short duration defined by the `short.ttl` parameter.
+It means that if page is updated, users that queries that page over a CDN server may have a stale version of the page during a time < to the `short.ttl` value but a CDN invalidation could be triggered to update the cached version.
 By default, the **short.ttl = 60s** meaning that it can take a minute for a page modification to be visible to all users.
 
 #### Template 'public-medium'
@@ -121,7 +117,7 @@ By default, the **short.ttl = 60s** meaning that it can take a minute for a page
 ```
 
 This template is a very simple variant of the public one but with a longer caching time in CDN, about 10 minutes.
-It is meant to be used with pages or site that does not requires a very fast page update propagation.
+It is meant to be used with pages or site that does not require very fast page update propagation.
 By default, the **medium.ttl = 600s** meaning that it can take 10 minutes for a page modification to be visible to all users.
 
 #### Template 'immutable'
@@ -131,9 +127,9 @@ By default, the **medium.ttl = 600s** meaning that it can take 10 minutes for a 
 ```
 
 The `immutable` template is dedicated to resources that are never supposed to change (aka when the url is unique, and will change if the content changes).
-All static resources included in pages using the Resource tag are stored and included using unique URLs that will change on any update. Thus, the content 
-can be cached into client forever without even asking if content has changed.
+All static resources included in pages using the Resource tag are stored and included using unique URLs that will change on any update. Thus, the content can be cached into a client forever without even asking if content has changed.
 It is the most efficient caching strategy but requires unique URLs or filenames.
+By default, the **immutable.ttl = 2678400s** (31 days) meaning that a client's browser won't perform any request on that resource until its internal cache expiration.
 
 All those templates can then be used in Client Cache Rules to enforce the expected Cache-Control header on Jahia's resources.
 
@@ -141,7 +137,7 @@ All those templates can then be used in Client Cache Rules to enforce the expect
 
 The default ruleset lives in:
 
-- `client-cache-control-bundle/src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-default.yml`.
+- [`client-cache-control-bundle/src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-default.yml`](https://github.com/Jahia/client-cache-control/blob/main/client-cache-control-bundle/src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-default.yml).
 
 This file defines a **ruleset** with name, description and an ordered list of rules:
 
