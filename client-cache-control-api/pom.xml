@@ -4,10 +4,10 @@
     <parent>
         <groupId>org.jahia.bundles</groupId>
         <artifactId>client-cache-control-root</artifactId>
-        <version>9.0.1</version>
+        <version>9.1.0-SNAPSHOT</version>
     </parent>
     <name>Jahia Client Cache Control API</name>
-    <version>9.0.1</version>
+    <version>9.1.0-SNAPSHOT</version>
     <artifactId>org.jahia.bundles.client-cache-control-api</artifactId>
     <packaging>bundle</packaging>
 
