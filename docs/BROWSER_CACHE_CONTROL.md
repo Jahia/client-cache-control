@@ -106,7 +106,7 @@ The jahiaClientCacheCustomTTL parameter is retrieved from the jahia template's c
 ```
 
 The most commonly used strategy for content that can change (pages) but does not contain private or sensitive information. 
-Client's browser will always check for a newer version of the resource (max-age=1) but intermediates (CDN, proxy) will cache the resource for a short duration defined by the `short.ttl` parameter.
+Client browsers will always check for a newer version of the resource (max-age=1) but intermediates (CDN, proxy) will cache the resource for a short duration defined by the `short.ttl` parameter.
 It means that if page is updated, users that queries that page over a CDN server may have a stale version of the page during a time < to the `short.ttl` value but a CDN invalidation could be triggered to update the cached version.
 By default, the **short.ttl = 60s** meaning that it can take a minute for a page modification to be visible to all users.
 
@@ -129,7 +129,7 @@ By default, the **medium.ttl = 600s** meaning that it can take 10 minutes for a 
 The `immutable` template is dedicated to resources that are never supposed to change (aka when the url is unique, and will change if the content changes).
 All static resources included in pages using the Resource tag are stored and included using unique URLs that will change on any update. Thus, the content can be cached into a client forever without even asking if content has changed.
 It is the most efficient caching strategy but requires unique URLs or filenames.
-By default, the **immutable.ttl = 2678400s** (31 days) meaning that a client's browser won't perform any request on that resource until its internal cache expiration.
+By default, the **immutable.ttl = 2678400s** (31 days), meaning that a client's browser won't perform any request on that resource until its internal cache expiration.
 
 All those templates can then be used in Client Cache Rules to enforce the expected Cache-Control header on Jahia's resources.
 
