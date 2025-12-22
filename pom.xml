@@ -10,7 +10,7 @@
     <groupId>org.jahia.bundles</groupId>
     <artifactId>client-cache-control-root</artifactId>
     <name>Jahia Client Cache Control</name>
-    <version>9.0.0</version>
+    <version>9.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -22,7 +22,7 @@
         <connection>scm:git:git@github.com:Jahia/client-cache-control.git</connection>
         <developerConnection>scm:git:git@github.com:Jahia/client-cache-control.git</developerConnection>
         <url>https://github.com/Jahia/client-cache-control</url>
-        <tag>9_0_0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <repositories>
