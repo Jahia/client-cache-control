@@ -73,7 +73,7 @@ The high-level request flow is:
 
 ### Client Cache Control templates
 
-Client cache control defines 5 levels of Cache-Control header templates that can be used in the ruleset. Even if it is unnecessary to change the default values of those templates, as it is defined using OSGI configuration, it can be modified using the `tools` interface of Jahia to access OSGI configuration with pid `org.jahia.bundles.cache.client`
+Client cache control defines 5 levels of Cache-Control header templates that can be used in the ruleset. Even if it is unnecessary to change the default values of those templates, as it is defined using OSGI configuration, it can be modified using the `tools` interface of Jahia to access OSGI configuration with pid `org.jahia.bundles.cache.client`.
 
 For a complete description of options that can be setup in the Cache-Control response header, please consult a [online reference documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control)
 
@@ -97,7 +97,7 @@ Custom value is a variant of the public caching strategy with some placeholders 
 The client's browser max-age is set to 1s ensuring that the client is going to ask for a newer version of the resource mostly on each request. 
 Anyway, for better performances, resource will be cached a little bit longer in intermediates (cdn) to absorb a high load on such resources.
 If any fragment of the page holds a custom cache expiration property, the `jahiaClientCacheCustomTTL` parameter is set to smaller one of those computed for that page.
-The jahiaClientCacheCustomTTL parameter is retrieved from the jahia template's cache.expiration property (see [managing cache in Jahia](/documentation/jahia-cms/jahia-8.2/developer/rendering-pages-and-content/managing-caching-in-jahia) page for more details about that property).
+The jahiaClientCacheCustomTTL parameter is retrieved from the Jahia template's cache.expiration property (see [managing cache in Jahia](/documentation/jahia-cms/jahia-8.2/developer/rendering-pages-and-content/managing-caching-in-jahia) page for more details about that property).
 
 #### Template 'public'
 
