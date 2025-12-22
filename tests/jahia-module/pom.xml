@@ -9,7 +9,7 @@
     <groupId>org.jahia.qa</groupId>
     <artifactId>client-cache-control-test-template</artifactId>
     <name>Jahia Client Cache Control Test Template</name>
-    <version>9.0.1-SNAPSHOT</version>
+    <version>9.0.1</version>
     <packaging>bundle</packaging>
     <description>This are the custom template for internal tests.</description>
     <repositories>
