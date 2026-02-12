@@ -7,7 +7,7 @@
     "@cypress/code-coverage": "^3.9.11",
     "@cypress/webpack-preprocessor": "^5.9.1",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
-    "@jahia/cypress": "^4.0.0",
+    "@jahia/cypress": "4.5.0",
     "@jahia/eslint-config": "^2.1.2",
     "@typescript-eslint/eslint-plugin": "^5.2.0",
     "@typescript-eslint/parser": "^5.2.0",
@@ -32,7 +32,6 @@
     "he": "^1.2.0",
     "husky": "^7.0.4",
     "istanbul-lib-coverage": "^3.2.0",
-    "jahia-reporter": "^0.4.2",
     "lint-staged": "^11.2.6",
     "mocha-junit-reporter": "^2.2.0",
     "mochawesome": "^6.3.1",
@@ -95,4 +94,4 @@
     "url": "https://github.com/Jahia/graphql-core/issues"
   },
   "homepage": "https://github.com/Jahia/graphql-core#readme"
- }
+}
