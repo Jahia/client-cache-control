@@ -58,10 +58,9 @@ jobs:
     secrets: inherit
     with:
       jahia_image: ghcr.io/jahia/jahia-ee-dev:8-SNAPSHOT
-      module_id: client-cache-control-root
+      module_id: client-cache-control
       should_use_build_artifacts: true
       should_skip_testrail: true
-      pagerduty_skip_notification: true
       docker_compose_file: docker-compose-standalone.yml
       provisioning_manifest: provisioning-manifest-build.yml
       artifact_prefix: client-cache-control-standalone
@@ -73,10 +72,9 @@ jobs:
     secrets: inherit
     with:
       jahia_image: ghcr.io/jahia/jahia-ee-dev:8-SNAPSHOT
-      module_id: client-cache-control-root
+      module_id: client-cache-control
       should_use_build_artifacts: true
       should_skip_testrail: true
-      pagerduty_skip_notification: true
       docker_compose_file: docker-compose-cluster.yml
       provisioning_manifest: provisioning-manifest-build.yml
       artifact_prefix: client-cache-control-cluster
