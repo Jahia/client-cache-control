@@ -7,284 +7,613 @@ content:
   $subpath: document-area/text-3
 ---
 
-Installed by default, the Jahia Client Cache Control module ensures that browsers and intermediaries get accurate cache instructions from Jahia, through HTTP response headers. Depending on the content returned (pages, images, code assets), the headers will be finely tuned to ensure the best strategy and performance.
+## Understanding cache http header management in Jahia
 
 ### Overview
 
-The Client Cache Control feature manages the HTTP `Cache-Control` header for all resources served by Jahia. It makes sure that browsers, 
-proxies and CDNs receive cache directives that are consistent with how Jahia actually caches and personalizes content.
+The Jahia Client Cache Control module manages HTTP `Cache-Control` headers for all resources served by Jahia. It ensures that browsers, proxies, and CDNs receive cache directives consistent with the nature and content type of each resource.
 
-In practice, the module lets you:
+The module works by:
 
-- Define Cache-Control response header **templates**. 
-- Define Client Cache Policies per **URL pattern** and **HTTP method** using a YAML **ruleset**.
-- Define **Client Cache Fragment Policy** for fine grain content that will be computed in the global Jahia page to determine the page **Client Cache Policy**.  
-- At the end of request processing, apply defined **templates** on the response headers according the resulted **Client Cache Policy**.
-- Choose between different **modes** of operation (strict enforcement vs allow overrides).
-- Expose cache ruleset and templates through a **Java service** and **GraphQL API**
+1. **Intercepting HTTP requests** at the earliest stage (servlet filter level)
+2. **Evaluating request URL patterns** against configured rules
+3. **Applying appropriate Cache-Control headers** based on the resource type and caching strategy
+4. **Fine-tuning cache policies** during page rendering (for dynamic content)
+5. **Enforcing the final header** in the HTTP response
 
-### Architecture
+### Cache Control Strategies
 
-A high-level architecture diagram shows the principles of integration in the current version:
+The module defines five cache control strategies (templates), each with a specific use case:
+
+#### Cache Strategies Comparison Table
+
+| **Strategy** | **Browser Cache Duration**     | **CDN/Proxy Cache Duration** | **Jahia Content Type** | **Examples** | **Jahia Internal Resource** | **Best For** |
+|---|--------------------------------|------------------------------|---|---|---|---|
+| **Immutable** | 1 month | 1 month | Static Assets with versioned URLs | Generated resources, hashed JS/CSS files | Generated Resource Servlet | Content that never changes |
+| **Public** | 1 second (check every request) | ~1 minute                    | HTML Pages (live mode) | Published pages, public content | RenderChain (page rendering) | Frequently updated public pages |
+| **Public-Medium** | 1 second (check every request) | ~10 minutes                  | Static Files, Media, Modules | Media library files, module JS/CSS, downloadable documents | FileServlet, Repository Servlet | Static content, assets |
+| **Custom** | 1 second (check every request) | Variable (component-based)   | Mixed Components | Pages with diverse content freshness needs | RenderChain (with component properties) | Complex pages with per-component TTL |
+| **Private** | 0 seconds (never cache)        | 0 seconds (never cache)      | Personalized/Admin Content | User profiles, admin panels, sensitive data | RenderChain (private fragments) | User-specific or sensitive content |
+
+
+#### 1. **Immutable** Strategy
+
+**Default Header**: `public, max-age=##immutable.ttl##, s-maxage=##immutable.ttl##, stale-while-revalidate=15, immutable`  
+**Default TTL**: 1 month (2,678,400 seconds)  
+**Purpose**: For resources with unique, non-changing URLs
+
+**Characteristics**:
+- Clients cache forever (until cache expiration)
+- CDNs/proxies cache forever  
+- No revalidation required from the client
+- Maximum performance optimization
+
+**Used for**:
+- Generated resources with unique filenames
+- Static assets with versioned URLs
+- Images, CSS, JavaScript with content hashes in filenames
+
+---
+
+#### 2. **Public-Medium** Strategy
+
+**Default Header**: `public, must-revalidate, max-age=1, s-maxage=##medium.ttl##, stale-while-revalidate=15`  
+**Default TTL**: 10 minutes (600 seconds)  
+**Purpose**: For static content that changes infrequently
+
+**Characteristics**:
+- Browsers: check for updates on each request (max-age=1s)
+- CDNs/proxies: cache for ~10 minutes
+- Users may see stale content for up to 10 minutes after publication
+- Balance between performance and content freshness
+
+**Used for**:
+- Static files (CSS, JavaScript without versioning)
+- Images in media library
+- Downloadable documents
+- Module resources
+
+---
+
+#### 3. **Public** Strategy (Short-term)
+
+**Default Header**: `public, must-revalidate, max-age=1, s-maxage=##short.ttl##, stale-while-revalidate=15`  
+**Default TTL**: 1 minute (60 seconds)  
+**Purpose**: For frequently updated public content
+
+**Characteristics**:
+- Browsers: check for updates on each request (max-age=1s)
+- CDNs/proxies: cache for ~1 minute
+- Users see updates within ~1 minute
+- Good balance for most web content
+
+**Used for**:
+- HTML pages in live mode
+- Dynamic content that changes regularly
+- Pages without personal information
+
+---
+
+#### 4. **Custom** Strategy (user-defined term)
+
+**Default Header**: `public, must-revalidate, max-age=1, s-maxage=%%jahiaClientCacheCustomTTL%%, stale-while-revalidate=15`  
+**TTL**: reflect the internal Jahia cache TTL value set for the component (via `cache.expiration` property)  
+**Purpose**: For dyanmic content with developper defined expiration times  
+
+**Characteristics**:
+- Browsers: check for updates on each request (max-age=1s)
+- CDNs/proxies: cache duration set dynamically based on component properties
+- Allows per-component cache duration configuration
+- Uses Jahia's `cache.expiration` template property
+
+**Used for**:
+- Pages with mixed components having different expiration times
+- Content with component-specific cache requirements
+
+---
+
+#### 5. **Private** Strategy (Most Restrictive)
+
+**Default Header**: `private, no-cache, no-store, must-revalidate, proxy-revalidate, max-age=0`  
+**Purpose**: For personalized, user-specific, or sensitive content
+
+**Characteristics**:
+- Browsers: no caching (max-age=0)
+- CDNs/proxies: no caching
+- No revalidation - must fetch fresh copy
+- Most restrictive caching policy
+- Each user gets personalized content
+
+**Used for**:
+- Admin pages
+- User accounts and profiles
+- Personalized content
+- Pages with user-specific fragments
+- All mutating operations (POST, DELETE, PATCH)
+
+---
+
+### How Cache Strategies are Applied
+
+A predefined ruleset ensure that correct cache strategies are applied to Jahia content URLs. 
+For common usage, there is no need to change the default ruleset as it covers all Jahia internal URLs with appropriate strategies.
+The ruleset is defined in a YAML file and can be customized by modules.
+
+#### Rule Matching Process
+
+The module uses an **ordered priority system** to apply cache strategies:
+
+1. **HTTP request arrives** at the web server
+2. **ClientCacheFilter** (servlet filter) intercepts the request
+3. **Rules are evaluated in priority order** (lower priority number = evaluated first)
+4. **First matching rule is applied** based on:
+   - HTTP method (GET, HEAD, POST, etc.)
+   - Request URI (matched against regular expressions)
+5. **Cache-Control header is set** using either:
+   - A **template reference** (e.g., `template:public`)
+   - A **literal header value** (e.g., `no-store,no-cache,must-revalidate`)
+
+#### Default Rule Application
+
+The default ruleset applies the following strategies:
+
+| **Priority** | **HTTP Methods** | **URL Pattern** | **Strategy** | **Purpose** |
+|---|---|---|---|---|
+| 1 | GET, HEAD | `/cms/render/live/.*` | `public` | Published pages in live mode |
+| 2 | GET, HEAD | `/cms/.*` | `private` | CMS administrative URLs |
+| 3 | GET, HEAD | `/welcome.*` | `private` | Welcome page (requires authentication check) |
+| 4 | GET, HEAD | `/start` | `private` | Start page |
+| 5 | GET, HEAD | `/validateTicket` | `private` | Ticket validation |
+| 6 | GET, HEAD | `/administration.*` | `private` | Administration pages |
+| 7 | GET, HEAD | `/files/.*` | `public-medium` | Media library files |
+| 8 | GET, HEAD | `/repository/.*` | `public-medium` | Repository assets |
+| 9 | GET, HEAD | `/modules/.*` | `public-medium` | Module resources |
+| 10 | GET, HEAD | `/engines/.*\.jsp` | `private` | JSP engines |
+| 11 | GET, HEAD | `/tools(/.*)?` | `private` | Jahia tools |
+| 12 | GET, HEAD | `/gwt/.*\.nocache\..*` | `private` | GWT non-cacheable resources |
+| 13 | GET, HEAD | `/generated-resources/.*` | `immutable` | Generated resources (hashed URLs) |
+| 14 | POST, DELETE, PATCH | `.*` | `private` | All mutations (state-changing operations) |
+| 15 | GET, HEAD | `.*` | `public` | Fallback for all other content |
+
+---
+
+### Changing the configuration
+
+**Global Client Cache Control configuration:**  
+The configuration can be changed by using Jahia tools => OSGI console => configuration => org.jahia.bundles.cache.client
+Thus you can change global configuration like the default TTL : short.ttl, medium.ttl or immutable.ttl
+
+**Adding specific rules:**   
+Any module can also provide specific ruleset by creating a file in `src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-<modulename>.yml` with the same format as the default ruleset. The rules will be merged and sorted by priority with the default ruleset. 
+Priority is a float number, the lower the priority number, the earlier the rule is evaluated. This allows you to insert rules at specific positions in the evaluation order without having to change the default ruleset (which is not recommended).
+
+--- 
+
+### Request Flow and Cache Header Application
+
+```
+HTTP Request
+    ↓
+[ClientCacheFilter - Servlet Filter]
+    ├─ Wraps response to intercept header modifications
+    ├─ Evaluates URL pattern against rules (in priority order)
+    ├─ Pre-sets Cache-Control header based on matched rule
+    └─ (STRICT mode: locks header from further modification)
+    ↓
+[Request Processing]
+    ├─ Static Servlet Processing (files, assets)
+    │  └─ Header pre-set by filter (may be locked in STRICT mode)
+    ├─ RenderChain Processing (page rendering)
+    │  ├─ Default "public" policy assigned to RenderContext
+    │  ├─ Fragment evaluation with CacheKeyPartGenerator
+    │  ├─ Fragment policies merged (may downgrade to "private")
+    │  └─ ClientCacheRenderFilter applies final policy
+    └─
+[Response Headers Set]
+    ├─ Filter pre-set header (may be overridden in ALLOW_OVERRIDES mode)
+    ├─ Or final header from RenderChain processing
+    └─
+[Client/CDN Receives Response]
+    └─ Cache-Control header dictates browser and CDN behavior
+```
+
+---
+
+### Key Takeaways
+
+- **Immutable**: Used for versioned static resources that never change
+- **Public/Public-Medium**: Used for public, non-personalized content
+- **Custom**: Used when different components on a page need different cache durations
+- **Private**: Used for personalized or sensitive content
+- **Browser vs CDN**: Browsers typically check on every request (max-age=1s), while CDNs cache longer (s-maxage=60_to_600s)
+- **Jahia Pages**: Dynamic pages render through the RenderChain and may be downgraded from public to private if they contain user-specific content
+
+---
+
+## Understanding and Tweaking cache strategies to specific use cases
+
+### Internal Architecture and Request Flow
+
+This section explains how the Jahia Client Cache Control module works internally and how you can customize it for your specific needs.
 
 ![ClientCacheBundle Architecture](./ClientCacheBundle.jpg)
 
-### Request flow and runtime behavior
+#### Step 1: Initial Request Interception (ClientCacheFilter)
 
-The high-level request flow is:
+When an HTTP request arrives at Jahia:
 
-1. **HTTP request received – ClientCacheFilter**
-   - The request is intercepted early by `ClientCacheFilter` (a servlet filter applied on `pattern=/*`).
-   - The filter enforces a response's wrapper to ensure complete control on the response header.
-   - The filter looks up a matching rule based on the HTTP method and request URI.
-   - If a rule matches, it **pre‑sets** a `Cache-Control` header on the response using either:
-     - a **template** (e.g. `template:public`, `template:private`), or
-     - a **literal** header value (e.g. `no-store,no-cache,must-revalidate`).
-   - If no rule matches and the response has no `Cache-Control` header yet, a **default header** is applied.
+1. **ClientCacheFilter** (a servlet filter) intercepts **all requests** (`pattern=/*`)
+2. The filter wraps the response in a **ClientCacheResponseWrapper** to control header modifications
+3. The filter looks up matching rules based on HTTP method and request URI
+4. If a rule matches, a Cache-Control header is **pre-set** on the response
 
-2. **Request continues to a servlet or to the RenderChain**
-   - For servlet URLs, preset header won't change if **strict mode** is set.
-   - For page rendering, the request enters Jahia's **RenderChain**.
-   - At RenderContext creation time, a default **public client cache policy** is set on the `RenderContext`.
+**Filter Behavior**:
+- Operates in two modes:
+  - **ALLOW_OVERRIDES mode** (default): Components can override the pre-set header
+  - **STRICT mode**: Header is locked; any override attempt logs an error
+- Preserves original request URI for debugging
 
-3. **Fragment rendering and fragment policies**
-   - For each fragment rendered, the `AggregateCacheFilter`:
-     - evaluates **cache key parts** via `CacheKeyPartGenerator`s to determine if the fragment requires a more restrictive level of caching (e.g. user‑specific fragments).
-     - computes a `ClientCacheFragmentPolicy` and stores it as a property of the fragment's `CacheEntry`.
-   - On fragment cache hits, the computed fragment policy is retrieved from the `CacheEntry` instead of recomputing it.
+#### Step 2: Request Processing
 
-4. **Enforcing fragment policies on the RenderContext**
-   - While rendering all fragments, `AggregateCacheFilter` merges fragment policies into the **global client cache policy** on the `RenderContext`.
-   - If any fragment requires a stricter policy (e.g. `private` instead of `public`), it **upgrades** the global policy accordingly.
+##### For Static Content (Servlets)
 
-5. **Render filter applies final policy – ClientCacheRenderFilter**
-   - At the end of the RenderChain, `ClientCacheRenderFilter` reads the final `ClientCachePolicy` from the `RenderContext` (level + TTL).
-   - It then calls `ClientCacheService.getCacheControlHeader(...)` with:
-     - the policy **level** (e.g. `public`, `public-medium`, `custom`, `private`), and
-     - a custom TTL parameter (`jahiaClientCacheCustomTTL`) if needed.
-   - If a suitable template exists, the filter sets a special `Force-Cache-Control` header on the response.
-     - This is used to **enforce** the RenderChain policy even when the service is in strict mode (see below).
+For static files, assets, and servlets:
+- The pre-set header from ClientCacheFilter is used
+- In STRICT mode, the header cannot be changed
+- In ALLOW_OVERRIDES mode, servlets can override it if needed
 
-6. **Client receives a coherent Cache-Control header**
-   - The browser and CDN finally see a `Cache-Control` header that reflects:
-     - the URL / method based rules,
-     - the actual fragment cache policy (public vs private),
-     - the effective TTL.
+##### For Dynamic Content (RenderChain - Page Rendering)
 
-### Client Cache Control templates
+For HTML page rendering through Jahia's RenderChain:
 
-Client cache control defines 5 levels of Cache-Control header templates that can be used in the ruleset. Even if it is unnecessary to change the default values of those templates, as it is defined using OSGI configuration, it can be modified using the `tools` interface of Jahia to access OSGI configuration with pid `org.jahia.bundles.cache.client`.
+1. **RenderContext Creation**:
+   - A new RenderContext is created for the page request
+   - A default **"public" ClientCachePolicy** is assigned
+   - This represents the initial assumption that the page is cacheable publicly
 
-For a complete description of options that can be setup in the Cache-Control response header, please consult a [online reference documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control)
+2. **Fragment Rendering and Cache Key Analysis**:
+   - As each fragment (content component) is rendered:
+     - Jahia's **AggregateCacheFilter** evaluates the fragment
+     - All **CacheKeyPartGenerators** registered for that fragment are called
+     - Each generator can signal if the fragment is user-specific or personalized
+   - This determines the **ClientCacheFragmentPolicy** for that fragment:
+     - Public (default)
+     - Private (if any generator indicates personalization)
 
-#### Template 'private'
+3. **Fragment Policy Merging**:
+   - Policies from all rendered fragments are merged into the global **RenderContext policy**
+   - Rules: **If any fragment is private, the page becomes private**
+   - Example: 
+     - Header (public) + Navigation Menu (public) + User Profile (private) = **Page becomes private**
 
-```
-Cache-Control = "private, no-cache, no-store, must-revalidate, proxy-revalidate, max-age=0";
-```
+4. **Final Policy Application (ClientCacheRenderFilter)**:
+   - At the end of the RenderChain, **ClientCacheRenderFilter** reads the final policy
+   - It calls `ClientCacheService.getCacheControlHeader()` with:
+     - The policy **level** (public, public-medium, custom, private)
+     - Custom TTL parameter if needed
+   - Sets a special **`Force-Cache-Control`** header that **overrides** the initial pre-set header
+   - This ensures RenderChain policies take precedence
 
-Private value is the most restrictive template. 
-It is dedicated to resources that are not cacheable by either intermediates (proxy, cdn) and client's browsers. 
-It must be applied on resources that could contain personal or sensitive information.
+---
 
-#### Template 'custom'
+### The Role of ClientCachePolicyContributor and CacheKeyPartGenerators
 
-```
-"public, must-revalidate, max-age=1, s-maxage=%%jahiaClientCacheCustomTTL%%, stale-while-revalidate=15";
-```
+**CacheKeyPartGenerators** are the key mechanism that determines how to cache a page fragment.
+**CacheKeyPartGenerators** implement the **ClientCachePolicyContributor** interface that is able to influence the cache policy of a page 
+fragment during rendering.
 
-Custom value is a variant of the public caching strategy with some placeholders that allows customizing the cache duration in intermediates (proxy, cdn).
-The client's browser max-age is set to 1s ensuring that the client is going to ask for a newer version of the resource mostly on each request. 
-Anyway, for better performances, resource will be cached a little bit longer in intermediates (cdn) to absorb a high load on such resources.
-If any fragment of the page holds a custom cache expiration property, the `jahiaClientCacheCustomTTL` parameter is set to smaller one of those computed for that page.
-The jahiaClientCacheCustomTTL parameter is retrieved from the Jahia template's cache.expiration property (see [managing cache in Jahia](/documentation/jahia-cms/jahia-8.2/developer/rendering-pages-and-content/managing-caching-in-jahia) page for more details about that property).
+#### What is a ClientCachePolicyContributor?
 
-#### Template 'public'
+A ClientCachePolicyContributor is a plugin that analyzes a fragment and returns a **ClientCachePolicy** according to the fragment content.  
+By default, most of the fragments are considered public. However, if a fragment detects user-specific content or any information that may prevent the global page 
+to be cached, it can return a private policy, which will downgrade the global page policy to private.
 
-```
-"public, must-revalidate, max-age=1, s-maxage=##short.ttl##, stale-while-revalidate=15";
-```
+#### How They Work
 
-The most commonly used strategy for content that can change (pages) but does not contain private or sensitive information. 
-Client browsers will always check for a newer version of the resource (max-age=1) but intermediates (CDN, proxy) will cache the resource for a short duration defined by the `short.ttl` parameter.
-It means that if page is updated, users that queries that page over a CDN server may have a stale version of the page during a time < to the `short.ttl` value but a CDN invalidation could be triggered to update the cached version.
-By default, the **short.ttl = 60s** meaning that it can take a minute for a page modification to be visible to all users.
+1. During fragment rendering, Jahia invokes **all registered CacheKeyPartGenerators**
+2. Each generator is called and the ClientCachePolicyContributor.getClientCachePolicy is evaluated to gather a ClientCachePolicy for that fragment
+3. The policies from all generators are merged to determine the final policy for the page
+4. If any generator returns a private policy, the entire page becomes private; otherwise it remains public
+5. If the fragment contains a specific cache strategy (e.g., cache.properties with a specific TTL), it can also influence the final cache header applied to the page to propagate the specific ttl.
 
-#### Template 'public-medium'
+#### ClientCachePolicyContributor that requires a Private policy in Jahia
 
-```
-"public, must-revalidate, max-age=1, s-maxage=##medium.ttl##, stale-while-revalidate=15";
-```
+- **AclCacheKeyPartGenerator**: As the same fragment can be rendered with different content based on user permissions, it enforces a private policy
+- **AjaxCacheKeyPartGenerator**: Most of the content retrieved by ajax is not cacheable as they are often user-specific or personalized, thus it enforces a private policy
 
-This template is a very simple variant of the public one but with a longer caching time in CDN, about 10 minutes.
-It is meant to be used with pages or site that does not require very fast page update propagation.
-By default, the **medium.ttl = 600s** meaning that it can take 10 minutes for a page modification to be visible to all users.
+All other default generators enforce a public cache policy.
 
-#### Template 'immutable'
+#### Debugging: Which Generator Makes the Page Private?
+
+To understand **why a page is private**, enable DEBUG logging for:
 
 ```
-"public, max-age=##immutable.ttl##, s-maxage=##immutable.ttl##, stale-while-revalidate=15, immutable";
+org.jahia.services.render.filter.cache.AggregateCacheFilter
 ```
 
-The `immutable` template is dedicated to resources that are never supposed to change (aka when the url is unique, and will change if the content changes).
-All static resources included in pages using the Resource tag are stored and included using unique URLs that will change on any update. Thus, the content can be cached into a client forever without even asking if content has changed.
-It is the most efficient caching strategy but requires unique URLs or filenames.
-By default, the **immutable.ttl = 2678400s** (31 days), meaning that a client's browser won't perform any request on that resource until its internal cache expiration.
+**How to Enable Debug Logging** (via Jahia Tools):
 
-All those templates can then be used in Client Cache Rules to enforce the expected Cache-Control header on Jahia's resources.
+1. Log in to Jahia as administrator
+2. Go to **Tools > Configuration > Logging**
+3. Add new loggers:
+   - **Class/Package**: `org.jahia.services.render.filter.cache.AggregateCacheFilter`
+   - **Level**: `DEBUG`
+   - **Class/Package**: `org.jahia.bundles.cache.client.render.ClientCacheRenderFilter`
+   - **Level**: `DEBUG`
 
-### Configuration via YAML ruleset
+**Log Output Example**:
+```
+DEBUG [AggregateCacheFilter] Determining client cache policy for fragment with key @@key@@
+DEBUG [AggregateCacheFilter] Fragment with key @@key@@ requires 'private' client cache policy (cache.private)
+(...)
+DEBUG [AggregateCacheFilter] Determining client cache policy for fragment with key @@key@@
+DEBUG [AggregateCacheFilter] Fragment with key @@key@@ requires 'public' client cache policy (computed)
+```
 
-The default ruleset lives in:
+---
 
-- [`client-cache-control-bundle/src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-default.yml`](https://github.com/Jahia/client-cache-control/blob/main/client-cache-control-bundle/src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-default.yml).
+### Configuration and Customization
 
-This file defines a **ruleset** with name, description and an ordered list of rules:
+#### Understanding the YAML Ruleset
 
+The default ruleset is located in:
+```
+client-cache-control-bundle/src/main/resources/META-INF/configurations/
+org.jahia.bundles.cache.client.ruleset-default.yml
+```
+
+**Ruleset Format**:
+
+Each rule has **four segments** separated by semicolons (`;`):
+
+```
+priority;methods;urlRegex;headerSpec
+```
+
+**Example**:
 ```yaml
-name: "Default ruleset"
-description: "Default ruleset"
-rules:
-  - "1;GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"
-  - "2;GET|HEAD;(?:/[^/]+)?/cms/.*;template:private"
-  - "3;GET|HEAD;(?:/[^/]+)?/welcome.*;template:private"
-  - "4;GET|HEAD;(?:/[^/]+)?/start;template:private"
-  - "5;GET|HEAD;(?:/[^/]+)?/validateTicket;template:private"
-  - "6;GET|HEAD;(?:/[^/]+)?/administration.*;template:private"
-  - "7;GET|HEAD;(?:/[^/]+)?/files/.*;template:public-medium"
-  - "8;GET|HEAD;(?:/[^/]+)?/repository/.*;template:public-medium"
-  - "9;GET|HEAD;(?:/[^/]+)?/modules/.*;template:public-medium"
-  - "10;GET|HEAD;(?:/[^/]+)?/engines/.*\\.jsp(\\?.*)?;template:private"
-  - "11;GET|HEAD;(?:/[^/]+)?/tools(/.*)?;template:private"
-  - "12;GET|HEAD;(?:/[^/]+)?/gwt/.*\\.nocache\\..*;template:private"
-  - "13;GET|HEAD;(?:/[^/]+)?/generated-resources/.*;template:immutable"
-  - "14;POST|DELETE|PATCH;.*;template:private"
-  - "15;GET|HEAD;.*;template:public"
+- "1;GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public"
+   │       │                        │                   └─ Header specification
+   │       │                        └─ URL regular expression
+   │       └─ HTTP methods (pipe-separated)
+   └─ Priority (float, lower = evaluated first)
 ```
 
-Each rule string has **four segments**, separated by semicolons (`;`):
+**Header Specifications**:
+- **Template reference**: `template:public`, `template:private`, `template:immutable`, etc.
+- **Literal value**: `no-store,no-cache,must-revalidate` (raw Cache-Control header)
 
-1. **Priority** – numeric (int or float). Lower values mean the rule is evaluated first.
-2. **Methods** – list of HTTP methods separated by `|` (e.g. `GET|HEAD`).
-3. **URL regexp** – regular expression matched against the request URI.
-4. **Header spec** – either a `template:<name>` reference or a literal `Cache-Control` header value.
+---
 
-Rules are loaded, merged (with rules coming from other modules, if any), ordered by priority and then evaluated to find the first match.
+#### Custom Module Rules
 
-#### Default behavior encoded in the ruleset
+To add cache rules for your module:
 
-- Page rendering in **live** mode:
-  - `GET|HEAD` on `/cms/render/live/...` → `template:public`.
-- Other `/cms/...` URLs:
-  - `GET|HEAD` on `/cms/...` → `template:private`.
-- Welcome and start pages, ticket validation, admin, tools, GWT, engines:
-  - Treated as **private**.
-- Static assets and modules:
-  - `/files/.*`, `/repository/.*`, `/modules/.*` → `template:public-medium`.
-- Generated resources:
-  - `/generated-resources/.*` → `template:immutable` (strong caching).
-- Mutating operations:
-  - `POST|DELETE|PATCH;.*` → `template:private`.
-- Fallback rule:
-  - `GET|HEAD;.*` → `template:public`.
-
-#### Where to place and how to customize the ruleset
-
-The default ruleset is packaged inside the implementation bundle and does not need to be changed unless you know exactly what you are doing.
-
-For Jahia module's custom cache content behavior rules, you can provide another ruleset that it will be combined with the default one (and all other module's one)
-Module's custom rule set must be placed in the `/resources/META-INF/configurations` and must follow naming convention: `org.jahia.bundles.cache.client.ruleset-<yourmodulename>.yml`
-
-Rules are combined using a priority, thus, depending of which URLs you want to customize, you'll have to find the best priority to insert your rules in the default ruleset.
-Rule priority is a **floating** number so you will always be able to insert your rule at the place you want using a classic ordering (8,99 < 9).
-
-**Typical tuning examples**:
-
-1. **Immutable module embedded resource**
-
-   - Suppose your module contain angular js code that have a changing filename on each generation
-   - Angular js code lives at `/modules/<yourmodulename>/js/uniquefilename.js`.
-   - You can add a immutable rule with a dedicated template:
-
-   ```yaml
-   - "8.99;GET|HEAD;(?:/[^/]+)?/modules/<yourmodulename>/js/uniquefilename.js;template:immutable"
+1. **Create a ruleset file** in your module at:
+   ```
+   src/main/resources/META-INF/configurations/
+   org.jahia.bundles.cache.client.ruleset-<yourmodulename>.yml
    ```
 
+2. **Define your rules** following the same format as the default ruleset
 
-2. **Resource with cache need that is not available as a template**
+3. **Use appropriate priorities**:
+   - Rules are merged with default rules and sorted by priority
+   - Use floating-point priorities to insert rules at specific positions
+   - Lower priority numbers are evaluated first
 
-   - For a really custom page caching strategy, you can use also use literal header value instead of a template:
+4. **Example: Immutable Assets**
 
+   If your module contains Angular JS code with unique filenames:
    ```yaml
-   - "0.2;GET|HEAD;(?:/[^/]+)?/cms/render/live/.*/sites/mysite/secure.*;no-store,no-cache,must-revalidate"
+   name: "MyModule Ruleset"
+   description: "Custom cache rules for MyModule"
+   rules:
+     - "8.99;GET|HEAD;(?:/[^/]+)?/modules/mymodule/js/uniquefilename.js;template:immutable"
    ```
 
-3. **Custom static assets directory**
+   **Priority Placement**:
+   - Default rule for `/modules/.*` has priority 9
+   - Custom rule uses priority 8.99 (just before)
+   - This ensures your rule is matched first
 
-   - If you use the media library to upload files with unique name and want to treat that subset of files as immutable:
+---
 
-   ```yaml
-   - "6.5;GET|HEAD;(?:/[^/]+)?/files/static-assets/.*;template:immutable"
-   ```
+#### Custom TTL Configuration
 
-You must use a priority that is lower than the one that match a larger URL to ensure that it will be applied as expected: 
-If a rule exists for /modules/.* with a priority of 9, you will have to place all your more specific /modules rules with a priority lower 
-(8.5 for example). If any other specific rule exist in your Jahia instance, you may use a more precise number to place your rule at the expected
-rank (8.5111). 
+You can customize the default TTL values for cache strategies:
 
-### GraphQL API
+1. **Via Jahia Tools**:
+   - Go to **Tools > Configuration > OSGi Configuration**
+   - Find PID: `org.jahia.bundles.cache.client`
+   - Adjust:
+     - `short_ttl` (default: 60 seconds)
+     - `medium_ttl` (default: 600 seconds = 10 minutes)
+     - `immutable_ttl` (default: 2,678,400 seconds = 1 month)
 
-The `client-cache-control-graphql` module exposes a GraphQL API (via Jahia's `graphql-dxm-provider`) to inspect and possibly manage client cache rules and templates.
+2. **Via Configuration Files**:
+   - Create `org.jahia.bundles.cache.client.cfg` in Jahia's deployment directory
+   - Set properties:
+     ```properties
+     short_ttl=60
+     medium_ttl=600
+     immutable_ttl=2678400
+     ```
 
-Typical usage (conceptual example):
+---
 
-- Query rules and templates:
+#### Custom Cache-Control Headers
 
-```graphql
-query {
-  admin {
-    clientCacheControl {
-      rules {
-        priority
-        methods
-        urlRegexp
-        header
-      }
-      templates {
-        name
-        header
-      }
-      mode
-    }
-  }
-}
+You can customize the actual Cache-Control header values for each template:
+
+1. **Via Jahia Tools**:
+   - Go to **Tools > Configuration > OSGi Configuration**
+   - Find PID: `org.jahia.bundles.cache.client`
+   - Customize:
+     - `cache_header_template_private`
+     - `cache_header_template_public`
+     - `cache_header_template_public_medium`
+     - `cache_header_template_custom`
+     - `cache_header_template_immutable`
+
+2. **Placeholder Replacement**:
+   - `##short.ttl##` → replaced with `short_ttl` value
+   - `##medium.ttl##` → replaced with `medium_ttl` value
+   - `##immutable.ttl##` → replaced with `immutable_ttl` value
+   - `%%jahiaClientCacheCustomTTL%%` → replaced with custom TTL from component properties
+
+**Example**:
+```
+public, must-revalidate, max-age=1, s-maxage=##short.ttl##, stale-while-revalidate=15, immutable
 ```
 
-- Depending on version, mutations may be provided to update templates or rules. These operations should be restricted to administrators.
+---
 
-### Limitations, pitfalls and best practices
+### Strict Mode vs Allow Overrides Mode
 
-**Limitations**
+The module operates in two modes:
 
-- The module focuses on `Cache-Control` (and a special `Force-Cache-Control`) and does not manage `ETag`, `Last-Modified`. Those aspects are 
-  dependent on the resource's content and are treated in each specific Servlet accordingly.
-- It relies on Jahia internals (RenderChain, AggregateCacheFilter, `ClientCachePolicy`) and is not designed to be used standalone.
+#### ALLOW_OVERRIDES Mode (Default)
 
-**Common pitfalls**
+- **Behavior**:
+  - ClientCacheFilter pre-sets a header based on rules
+  - Other components can override this header during request processing
+  - In RenderChain, ClientCacheRenderFilter overrides with the final policy
+  - Any override is logged at DEBUG level
 
-- **Overly broad or high-priority rules**:
-  - A single, very generic high-priority rule can accidentally make many pages `public` or `private` when they should not be.
-- **Misunderstanding strict mode**:
-  - In `STRICT` mode, any component overriding the preset `Cache-Control` header will trigger error logs.
+- **Use Case**: Usage of modules that do not use the latest ruleset and that overrides cache headers directly (NOT RECOMMENDED)
 
-**Best practices**
+- **Enable via Jahia Tools**:
+  - Go to **Tools > Configuration > OSGi Configuration**
+  - Find PID: `org.jahia.bundles.cache.client`
+  - Set `mode` to `overrides`
 
-- Start from the **default ruleset** and adjust gradually.
-- Enable DEBUG logging for `ClientCacheFilter` and `ClientCacheRenderFilter` in non‑production environments to observe how rules and policies are applied.
-- Use the **GraphQL API** to audit current rules, templates and mode before making major changes.
-- Document your custom rules and templates so other teams (ops, integrators, developers) understand the cache strategy.
+---
 
-### Sample demonstration module
+#### STRICT Mode
 
-A sample module that demonstrate common specific Cache-Control header cache usage is available in the [OSGI-modules-samples project](https://github.com/Jahia/OSGI-modules-samples) 
-in the `client-cache-sample` module.
+- **Behavior**:
+  - ClientCacheFilter pre-sets a header and **locks** the response
+  - The header **cannot be modified** by any component
+  - Any attempt to override the header logs an ERROR message
+  - ClientCacheRenderFilter uses the special `Force-Cache-Control` header that can bypass this lock (RESERVED FOR RENDERCHAIN FINAL POLICY ONLY)
+
+- **Use Case**: Well-known environments where you want to enforce strict cache policies and prevent any accidental overrides or dublin values
+
+- **Enable via Jahia Tools**:
+  - Go to **Tools > Configuration > OSGi Configuration**
+  - Find PID: `org.jahia.bundles.cache.client`
+  - Set `mode` to `strict`
+
+---
+
+### Common Customization Scenarios
+
+#### Scenario 1: Your Module Has Unique Versioned Assets
+
+**Problem**: You want `/modules/mymodule/js/uniquefilename.v123.js` to be cached forever (immutable).
+
+**Solution**:
+
+1. Create `src/main/resources/META-INF/configurations/org.jahia.bundles.cache.client.ruleset-mymodule.yml`:
+   ```yaml
+   name: "MyModule Assets"
+   description: "Immutable js assets for MyModule"
+   rules:
+     - "8.42;GET|HEAD;(?:/[^/]+)?/modules/mymodule/js/.*\.v[0-9]+\.js;template:immutable"
+   ```
+
+2. These rules will be inserted before the default `/modules/.*` rule (priority 9)
+
+---
+
+#### Scenario 2: Your Module Has Personalized Content Pages
+
+**Problem**: Your module includes specific CacheKeyPartGenerator to ensure that internal Jahia cache is aware of your specific content.
+
+**Solution**:
+
+1. Overrides the getClientCachePolicy method of the ClientCachePolicyContributor interface to return a private policy when the content is personalized
+2. The cache policy will automatically become `PRIVATE` when personalized fragments are rendered
+3. Verify with DEBUG logging on `ClientCachePolicyContributor`
+
+---
+
+### Monitoring and Troubleshooting
+
+#### Enable Debug Logging
+
+Enable DEBUG logging to see how the module processes requests:
+
+1. **For ClientCacheFilter** (initial rule matching):
+   - Logger: `org.jahia.bundles.cache.client.filter.ClientCacheFilter`
+   - Shows rule matching and header pre-setting
+
+2. **For ClientCacheRenderFilter** (final policy application):
+   - Logger: `org.jahia.bundles.cache.client.render.ClientCacheRenderFilter`
+   - Shows final policy and header application
+
+3. **For Cache Policy Decisions** (which generator made it private):
+   - Logger: `org.jahia.services.render.filter.cache.AggregateCacheFilter`
+   - Shows which fragments are private and why
+
+**How to Enable (via Jahia Tools)**:
+
+1. Go to **Tools > Configuration > Logging**
+2. Click "Add logger"
+3. Enter the class name (e.g., `org.jahia.bundles.cache.client.filter.ClientCacheFilter`)
+4. Set level to `DEBUG`
+5. Save
+
+---
+
+### Reference Sample Modules
+
+Jahia provides sample modules demonstrating common use cases:
+
+1. **Cache Control Sample**:
+   - URL: https://github.com/Jahia/OSGI-modules-samples/tree/master/cache-control-sample
+   - Demonstrates: Custom rules, template usage, component-level TTL configuration
+
+2. **Cache Key Part Generator Samples**:
+   - URL: https://github.com/Jahia/OSGI-modules-samples/tree/master/cache-key-part-generator-samples
+   - Demonstrates: Creating custom generators to detect personalization
+   - Explains: How to make pages private based on custom logic
+
+**Recommended**: Study these samples to understand advanced customization patterns.
+
+---
+
+### Key Architecture Components
+
+| **Component** | **Purpose** | **File** |
+|---|---|---|
+| **ClientCacheFilter** | Servlet filter that pre-sets headers based on URL rules | `ClientCacheFilter.java` |
+| **ClientCacheResponseWrapper** | Wraps response to control header modifications | `ClientCacheResponseWrapper.java` |
+| **ClientCacheServiceImpl** | Core service managing rules, templates, and configuration | `ClientCacheServiceImpl.java` |
+| **ClientCacheRenderFilter** | RenderChain filter that applies final policy from fragments | `ClientCacheRenderFilter.java` |
+| **CacheKeyPartGenerator** | Jahia plugin detecting personalized fragments | Jahia core (`render-service`) |
+| **ClientCachePolicyContributor** | Jahia core component merging fragment policies | Jahia core (`render-service`) |
+| **AggregateCacheFilter** | Jahia's fragment cache filter invoking generators | Jahia core (`render-service`) |
+
+---
+
+### Best Practices
+
+1. **Start from the default ruleset**: Don't modify the default rules unless absolutely necessary. Instead, add custom rules for your module.
+
+2. **Use floating-point priorities**: When inserting custom rules, use floating-point priorities (e.g., 8.99, 8.501) to avoid collisions.
+
+3. **Test with DEBUG logging**: Always enable DEBUG logging for `ClientCacheFilter` and `ClientCacheRenderFilter` during development.
+
+4. **Understand your fragments**: Use DEBUG logging on `AggregateCacheFilter` to understand which fragments trigger private policies.
+
+5. **Document custom rules**: Document why you added custom rules so future developers understand the intent.
+
+6. **Use templates, not literals**: Prefer `template:public` over literal headers, so TTL changes apply automatically.
+
+7. **Use immutable only when appropriate**: Only use the `immutable` template for resources with truly unique URLs.
+
+---
+
+
