@@ -572,11 +572,11 @@ Enable DEBUG logging to see how the module processes requests:
 Jahia provides sample modules demonstrating common use cases:
 
 1. **Cache Control Sample**:
-   - URL: https://github.com/Jahia/OSGI-modules-samples/tree/master/cache-control-sample
+   - URL: https://github.com/Jahia/OSGI-modules-samples/tree/main/cache-control-sample
    - Demonstrates: Custom rules, template usage, component-level TTL configuration
 
 2. **Cache Key Part Generator Samples**:
-   - URL: https://github.com/Jahia/OSGI-modules-samples/tree/master/cache-key-part-generator-samples
+   - URL: https://github.com/Jahia/OSGI-modules-samples/tree/main/cache-key-part-generator-samples
    - Demonstrates: Creating custom generators to detect personalization
    - Explains: How to make pages private based on custom logic
 

@@ -12,6 +12,7 @@ jobs:
     with:
       jahia_image: jahia/jahia-ee:8
       module_id: client-cache-control
+      module_branch: main
       testrail_project: Jahia Client Cache Control Bundle
       pagerduty_incident_service: client-cache-control-JahiaRL
       provisioning_manifest: provisioning-manifest-build.yml
