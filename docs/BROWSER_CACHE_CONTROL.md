@@ -1,11 +1,16 @@
 ---
 page:
   $path: /sites/academy/home/documentation/jahia/8_2/developer/rendering-pages-and-content/browser-caching-strategies
-  jcr:title: Browser caching strategies
+  jcr:title: Browser CDN caching strategies
   j:templateName: documentation
 content:
   $subpath: document-area/text-3
 ---
+
+:::info
+Content in this page is applicable to environments running Jahia 8.2.3.0 or above.
+:::
+
 
 ## Understanding cache http header management in Jahia
 
