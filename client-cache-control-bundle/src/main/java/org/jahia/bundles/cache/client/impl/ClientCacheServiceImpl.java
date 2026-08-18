@@ -27,7 +27,10 @@ import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * @author Jerome Blanchard
@@ -134,6 +137,29 @@ public class ClientCacheServiceImpl implements ClientCacheService {
     }
 
     @Override public Optional<String> getCacheControlHeader(String method, String uri, Map<String, String> params) {
+        Optional<String> header = resolveHeader(method, uri, params);
+        String canonical = canonicalize(uri);
+        if (canonical.equals(uri)) {
+            return header;
+        }
+        // One resource can be requested under several spellings of the same path: a character written
+        // percent-encoded, a duplicated separator, a dot segment. They all reach the same servlet, so they
+        // all resolve to the same policy, and a rule needs to name the path only once to cover them.
+        //
+        // Keeping the stricter of the two answers is what makes that safe. Canonicalizing widens every
+        // rule, permissive ones included, so the comparison below is what guarantees that resolving the
+        // canonical form can only ever remove shared caching, never grant it.
+        Optional<String> canonicalHeader = resolveHeader(method, canonical, params);
+        if (canonicalHeader.isPresent() && !allowsSharedCaching(canonicalHeader.get())
+                && (!header.isPresent() || allowsSharedCaching(header.get()))) {
+            LOGGER.debug("[{} - {}] canonical form [{}] resolves to a stricter policy, applying it: [{}]", method, uri,
+                    canonical, canonicalHeader.get());
+            return canonicalHeader;
+        }
+        return header;
+    }
+
+    private Optional<String> resolveHeader(String method, String uri, Map<String, String> params) {
         Optional<ClientCacheFilterRule> mRule = listFilterRules().stream()
                 .filter(rule -> rule.getMethods().contains(method) && rule.getUrlPattern().matcher(uri).matches()).findFirst();
         if (mRule.isPresent()) {
@@ -162,6 +188,107 @@ public class ClientCacheServiceImpl implements ClientCacheService {
 
     @Override public String getDefaultCacheControlHeader() {
         return cacheControlHeaderTemplates.get(ClientCacheFilterTemplate.DEFAULT).getTemplate();
+    }
+
+    private static final Pattern DUPLICATE_SEPARATOR = Pattern.compile("/{2,}");
+    private static final Pattern NON_ZERO_S_MAXAGE = Pattern.compile("s-maxage\\s*=\\s*0*[1-9]");
+
+    /**
+     * Rewrites a request URI to the single form that stands for every spelling of the same path:
+     * percent-encoding decoded once, duplicate separators collapsed, dot segments removed.
+     *
+     * <p>Returns the argument unchanged when it is already canonical, which is the common case.</p>
+     */
+    static String canonicalize(String uri) {
+        if (uri == null || uri.isEmpty()) {
+            return uri;
+        }
+        String canonical = removeDotSegments(DUPLICATE_SEPARATOR.matcher(decodeOnce(uri)).replaceAll("/"));
+        return canonical.equals(uri) ? uri : canonical;
+    }
+
+    /**
+     * Percent-decodes once. A {@code %} that is not followed by two hexadecimal digits is left as it
+     * stands, so a path that carries a literal percent sign is not corrupted. Decoding runs over the
+     * collected bytes rather than character by character, so a multi-byte UTF-8 sequence written as
+     * several percent groups decodes to the character it stands for.
+     */
+    private static String decodeOnce(String uri) {
+        if (uri.indexOf('%') < 0) {
+            return uri;
+        }
+        StringBuilder decoded = new StringBuilder(uri.length());
+        ByteArrayOutputStream pending = new ByteArrayOutputStream();
+        for (int i = 0; i < uri.length(); ) {
+            if (uri.charAt(i) == '%' && i + 2 < uri.length() && isHex(uri.charAt(i + 1)) && isHex(uri.charAt(i + 2))) {
+                pending.write(Integer.parseInt(uri.substring(i + 1, i + 3), 16));
+                i += 3;
+                continue;
+            }
+            flush(pending, decoded);
+            decoded.append(uri.charAt(i));
+            i++;
+        }
+        flush(pending, decoded);
+        return decoded.toString();
+    }
+
+    private static void flush(ByteArrayOutputStream pending, StringBuilder out) {
+        if (pending.size() > 0) {
+            out.append(new String(pending.toByteArray(), StandardCharsets.UTF_8));
+            pending.reset();
+        }
+    }
+
+    private static boolean isHex(char c) {
+        return Character.digit(c, 16) >= 0;
+    }
+
+    /**
+     * Removes {@code .} and {@code ..} segments, following RFC 3986 section 5.2.4. A {@code ..} that
+     * would climb above the root is dropped rather than applied.
+     */
+    private static String removeDotSegments(String path) {
+        if (path.indexOf('.') < 0) {
+            return path;
+        }
+        boolean rooted = path.startsWith("/");
+        Deque<String> kept = new ArrayDeque<>();
+        for (String segment : (rooted ? path.substring(1) : path).split("/", -1)) {
+            if (".".equals(segment)) {
+                continue;
+            }
+            if ("..".equals(segment)) {
+                // A rooted path has no parent above its root, so a climb that would leave it is dropped
+                // rather than applied. Leaving it in would make the canonical form name a path the
+                // request could not reach.
+                kept.pollLast();
+                continue;
+            }
+            kept.addLast(segment);
+        }
+        String rebuilt = (rooted ? "/" : "") + String.join("/", kept);
+        // A path whose last segment was a dot segment loses its trailing separator when it is rebuilt.
+        if (path.endsWith("/") && !rebuilt.endsWith("/")) {
+            rebuilt = rebuilt + "/";
+        }
+        return rebuilt.isEmpty() ? "/" : rebuilt;
+    }
+
+    /**
+     * Whether a Cache-Control value lets a cache shared between users store the response. This is the
+     * property the two candidate policies are compared on, and it reads the header itself rather than
+     * the name of a template, so a rule that carries a literal header value is ranked too.
+     */
+    static boolean allowsSharedCaching(String header) {
+        if (header == null) {
+            return false;
+        }
+        String value = header.toLowerCase(Locale.ROOT);
+        if (value.contains("no-store") || value.contains("private")) {
+            return false;
+        }
+        return value.contains("public") || NON_ZERO_S_MAXAGE.matcher(value).find();
     }
 
     private Map<String, ClientCacheFilterTemplate> computeCacheControlHeaderTemplates(Config config) {
