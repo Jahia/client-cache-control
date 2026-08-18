@@ -27,10 +27,7 @@ import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.regex.Pattern;
 
 /**
  * @author Jerome Blanchard
@@ -137,22 +134,6 @@ public class ClientCacheServiceImpl implements ClientCacheService {
     }
 
     @Override public Optional<String> getCacheControlHeader(String method, String uri, Map<String, String> params) {
-        // One resource can be requested under several spellings of the same path: a character written
-        // percent-encoded, a duplicated separator, a dot segment. They all reach the same resource and
-        // describe the same response, so a rule needs to name a path only once to cover every way of
-        // writing it.
-        //
-        // The servlet filter hands over the path the container resolved, which is already decoded and
-        // normalized. Canonicalizing here as well costs one comparison on that path and keeps the service
-        // correct for any caller, whatever form of the path it holds.
-        String canonical = canonicalize(uri);
-        if (!canonical.equals(uri)) {
-            LOGGER.debug("[{} - {}] resolving on the canonical form [{}]", method, uri, canonical);
-        }
-        return resolveHeader(method, canonical, params);
-    }
-
-    private Optional<String> resolveHeader(String method, String uri, Map<String, String> params) {
         Optional<ClientCacheFilterRule> mRule = listFilterRules().stream()
                 .filter(rule -> rule.getMethods().contains(method) && rule.getUrlPattern().matcher(uri).matches()).findFirst();
         if (mRule.isPresent()) {
@@ -182,89 +163,6 @@ public class ClientCacheServiceImpl implements ClientCacheService {
     @Override public String getDefaultCacheControlHeader() {
         return cacheControlHeaderTemplates.get(ClientCacheFilterTemplate.DEFAULT).getTemplate();
     }
-
-    private static final Pattern DUPLICATE_SEPARATOR = Pattern.compile("/{2,}");
-
-    /**
-     * Rewrites a request URI to the single form that stands for every spelling of the same path:
-     * percent-encoding decoded once, duplicate separators collapsed, dot segments removed.
-     *
-     * <p>Returns the argument unchanged when it is already canonical, which is the common case.</p>
-     */
-    static String canonicalize(String uri) {
-        if (uri == null || uri.isEmpty()) {
-            return uri;
-        }
-        String canonical = removeDotSegments(DUPLICATE_SEPARATOR.matcher(decodeOnce(uri)).replaceAll("/"));
-        return canonical.equals(uri) ? uri : canonical;
-    }
-
-    /**
-     * Percent-decodes once. A {@code %} that is not followed by two hexadecimal digits is left as it
-     * stands, so a path that carries a literal percent sign is not corrupted. Decoding runs over the
-     * collected bytes rather than character by character, so a multi-byte UTF-8 sequence written as
-     * several percent groups decodes to the character it stands for.
-     */
-    private static String decodeOnce(String uri) {
-        if (uri.indexOf('%') < 0) {
-            return uri;
-        }
-        StringBuilder decoded = new StringBuilder(uri.length());
-        ByteArrayOutputStream pending = new ByteArrayOutputStream();
-        int i = 0;
-        while (i < uri.length()) {
-            if (uri.charAt(i) == '%' && i + 2 < uri.length() && isHex(uri.charAt(i + 1)) && isHex(uri.charAt(i + 2))) {
-                pending.write(Integer.parseInt(uri.substring(i + 1, i + 3), 16));
-                i += 3;
-            } else {
-                flush(pending, decoded);
-                decoded.append(uri.charAt(i));
-                i++;
-            }
-        }
-        flush(pending, decoded);
-        return decoded.toString();
-    }
-
-    private static void flush(ByteArrayOutputStream pending, StringBuilder out) {
-        if (pending.size() > 0) {
-            out.append(new String(pending.toByteArray(), StandardCharsets.UTF_8));
-            pending.reset();
-        }
-    }
-
-    private static boolean isHex(char c) {
-        return Character.digit(c, 16) >= 0;
-    }
-
-    /**
-     * Removes {@code .} and {@code ..} segments, following RFC 3986 section 5.2.4. A {@code ..} that
-     * would climb above the root is dropped rather than applied.
-     */
-    private static String removeDotSegments(String path) {
-        if (path.indexOf('.') < 0) {
-            return path;
-        }
-        boolean rooted = path.startsWith("/");
-        Deque<String> kept = new ArrayDeque<>();
-        for (String segment : (rooted ? path.substring(1) : path).split("/", -1)) {
-            if ("..".equals(segment)) {
-                // A rooted path has no parent above its root, so a climb that would leave it is dropped
-                // rather than applied. Leaving it in would make the canonical form name a path the
-                // request could not reach.
-                kept.pollLast();
-            } else if (!".".equals(segment)) {
-                kept.addLast(segment);
-            }
-        }
-        String rebuilt = (rooted ? "/" : "") + String.join("/", kept);
-        // A path whose last segment was a dot segment loses its trailing separator when it is rebuilt.
-        if (path.endsWith("/") && !rebuilt.endsWith("/")) {
-            rebuilt = rebuilt + "/";
-        }
-        return rebuilt.isEmpty() ? "/" : rebuilt;
-    }
-
 
     private Map<String, ClientCacheFilterTemplate> computeCacheControlHeaderTemplates(Config config) {
         Map<String, ClientCacheFilterTemplate> values = new HashMap<>();

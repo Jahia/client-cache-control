@@ -24,16 +24,14 @@ import java.util.Hashtable;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
  * Resolution of the Cache-Control policy for a request URI.
  *
  * <p>The rules loaded here are the shipped default ruleset plus the two rules modules contribute for
- * their own administration paths, because what this exercises is how a rule that names one path
- * behaves when the same path is requested under another spelling.</p>
+ * their own administration paths. The paths passed in are resolved paths, which is what the servlet
+ * filter hands over; how a request URI becomes one is {@code ClientCacheFilterTest}.</p>
  *
  * @author Jerome Blanchard
  */
@@ -77,41 +75,19 @@ public class ClientCacheServiceImplTest {
     }
 
     @Test
-    public void canonicalSpellingResolvesToTheRuleThatNamesIt() {
+    public void aPathResolvesToTheRuleThatNamesIt() {
         assertEquals(PRIVATE, policyFor("/modules/healthcheck"));
         assertEquals(PRIVATE, policyFor("/modules/tools/index.jsp"));
-    }
-
-    @Test
-    public void aRuleAlsoCoversTheOtherSpellingsOfThePathItNames() {
-        // Each of these reaches the same servlet as the canonical URI above, so each is answered with
-        // the same policy.
-        assertEquals(PRIVATE, policyFor("/modules/healthchec%6b"));
-        assertEquals(PRIVATE, policyFor("/modules/%68ealthcheck"));
-        assertEquals(PRIVATE, policyFor("/modules//healthcheck"));
-        assertEquals(PRIVATE, policyFor("/modules//tools/index.jsp"));
-        assertEquals(PRIVATE, policyFor("/modules/tool%73/index.jsp"));
-        assertEquals(PRIVATE, policyFor("/modules/./healthcheck"));
-        assertEquals(PRIVATE, policyFor("/modules/x/../healthcheck"));
-    }
-
-    @Test
-    public void theContextPathIsStillToleratedOnEverySpelling() {
+        // The rules open with an optional segment group, so they match with a context path too.
         assertEquals(PRIVATE, policyFor("/jahia/modules/healthcheck"));
-        assertEquals(PRIVATE, policyFor("/jahia/modules/healthchec%6b"));
     }
 
+
+
+
     @Test
-    public void aRuleAppliesToEverySpellingWhicheverPolicyItCarries() {
-        // The rule that names the live rendering path is a permissive one, and it covers the spellings of
-        // that path exactly as a restrictive rule does. The policy follows the resource that answers, so it
-        // is the same for both of these.
+    public void policiesForOrdinaryPathsAreThoseTheRulesetStates() {
         assertEquals(PUBLIC, policyFor("/cms/render/live/site/home.html"));
-        assertEquals(PUBLIC, policyFor("/cms/render/liv%65/site/home.html"));
-    }
-
-    @Test
-    public void policiesForOrdinaryPathsAreUnchanged() {
         assertEquals(PUBLIC_MEDIUM, policyFor("/modules/ckeditor/javascript/ckeditor.js"));
         assertEquals(PUBLIC_MEDIUM, policyFor("/files/default/site/image.png"));
         assertEquals(PUBLIC, policyFor("/sites/mysite/home.html"));
@@ -120,32 +96,8 @@ public class ClientCacheServiceImplTest {
                 service.getCacheControlHeader("POST", "/modules/graphql", Collections.emptyMap()).orElse(null));
     }
 
-    @Test
-    public void canonicalizeRewritesEverySpellingToOneForm() {
-        assertEquals("/modules/healthcheck", ClientCacheServiceImpl.canonicalize("/modules/healthchec%6b"));
-        assertEquals("/modules/healthcheck", ClientCacheServiceImpl.canonicalize("/modules//healthcheck"));
-        assertEquals("/modules/healthcheck", ClientCacheServiceImpl.canonicalize("/modules/./healthcheck"));
-        assertEquals("/modules/healthcheck", ClientCacheServiceImpl.canonicalize("/modules/x/../healthcheck"));
-        assertEquals("/modules/tools/index.jsp", ClientCacheServiceImpl.canonicalize("/modules/tool%73//index.jsp"));
-        // A multi-byte character written as several percent groups decodes to the character it stands for.
-        assertEquals("/files/été.pdf", ClientCacheServiceImpl.canonicalize("/files/%C3%A9t%C3%A9.pdf"));
-    }
 
-    @Test
-    public void canonicalizeLeavesAPathThatIsAlreadyCanonicalUntouched() {
-        String uri = "/modules/ckeditor/javascript/ckeditor.js";
-        assertSame(uri, ClientCacheServiceImpl.canonicalize(uri));
-        // A percent sign that is not followed by two hexadecimal digits belongs to the name, and is kept
-        // as it stands. An encoded one is decoded, like any other encoded byte.
-        assertEquals("/files/100% done.pdf", ClientCacheServiceImpl.canonicalize("/files/100% done.pdf"));
-        assertEquals("/files/50% off.pdf", ClientCacheServiceImpl.canonicalize("/files/50%25 off.pdf"));
-    }
 
-    @Test
-    public void canonicalizeDoesNotClimbAboveTheRoot() {
-        assertEquals("/etc/passwd", ClientCacheServiceImpl.canonicalize("/../../etc/passwd"));
-        assertEquals("/", ClientCacheServiceImpl.canonicalize("/"));
-    }
 
 
     /** The service configuration with every value left at the default the component declares. */
