@@ -102,12 +102,12 @@ public class ClientCacheServiceImplTest {
     }
 
     @Test
-    public void resolvingTheCanonicalFormNeverGrantsSharedCaching() {
-        // The URI as received matches the /cms/ rule, because rule 1 needs the literal "live", while its
-        // canonical form matches rule 1 and is publicly cacheable. The stricter of the two answers is the
-        // one that applies, which is what keeps the canonical pass from widening a permissive rule.
-        assertEquals(PRIVATE, policyFor("/cms/render/liv%65/site/home.html"));
+    public void aRuleAppliesToEverySpellingWhicheverPolicyItCarries() {
+        // The rule that names the live rendering path is a permissive one, and it covers the spellings of
+        // that path exactly as a restrictive rule does. The policy follows the resource that answers, so it
+        // is the same for both of these.
         assertEquals(PUBLIC, policyFor("/cms/render/live/site/home.html"));
+        assertEquals(PUBLIC, policyFor("/cms/render/liv%65/site/home.html"));
     }
 
     @Test
@@ -147,18 +147,6 @@ public class ClientCacheServiceImplTest {
         assertEquals("/", ClientCacheServiceImpl.canonicalize("/"));
     }
 
-    @Test
-    public void sharedCachingIsReadFromTheHeaderItself() {
-        assertFalse(ClientCacheServiceImpl.allowsSharedCaching(PRIVATE));
-        assertTrue(ClientCacheServiceImpl.allowsSharedCaching(PUBLIC_MEDIUM));
-        assertTrue(ClientCacheServiceImpl.allowsSharedCaching(PUBLIC));
-        // A rule may carry a literal header instead of a template name, and it is ranked the same way.
-        assertTrue(ClientCacheServiceImpl.allowsSharedCaching("public, max-age=31536000, no-transform"));
-        assertFalse(ClientCacheServiceImpl.allowsSharedCaching("no-cache, no-store, must-revalidate"));
-        assertFalse(ClientCacheServiceImpl.allowsSharedCaching("max-age=60, s-maxage=0"));
-        assertTrue(ClientCacheServiceImpl.allowsSharedCaching("max-age=60, s-maxage=600"));
-        assertFalse(ClientCacheServiceImpl.allowsSharedCaching(null));
-    }
 
     /** The service configuration with every value left at the default the component declares. */
     private static ClientCacheServiceImpl.Config defaultConfig() {

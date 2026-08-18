@@ -137,26 +137,19 @@ public class ClientCacheServiceImpl implements ClientCacheService {
     }
 
     @Override public Optional<String> getCacheControlHeader(String method, String uri, Map<String, String> params) {
-        Optional<String> header = resolveHeader(method, uri, params);
-        String canonical = canonicalize(uri);
-        if (canonical.equals(uri)) {
-            return header;
-        }
         // One resource can be requested under several spellings of the same path: a character written
-        // percent-encoded, a duplicated separator, a dot segment. They all reach the same servlet, so they
-        // all resolve to the same policy, and a rule needs to name the path only once to cover them.
+        // percent-encoded, a duplicated separator, a dot segment. They all reach the same resource and
+        // describe the same response, so a rule needs to name a path only once to cover every way of
+        // writing it.
         //
-        // Keeping the stricter of the two answers is what makes that safe. Canonicalizing widens every
-        // rule, permissive ones included, so the comparison below is what guarantees that resolving the
-        // canonical form can only ever remove shared caching, never grant it.
-        Optional<String> canonicalHeader = resolveHeader(method, canonical, params);
-        if (canonicalHeader.isPresent() && !allowsSharedCaching(canonicalHeader.get())
-                && (!header.isPresent() || allowsSharedCaching(header.get()))) {
-            LOGGER.debug("[{} - {}] canonical form [{}] resolves to a stricter policy, applying it: [{}]", method, uri,
-                    canonical, canonicalHeader.get());
-            return canonicalHeader;
+        // The servlet filter hands over the path the container resolved, which is already decoded and
+        // normalized. Canonicalizing here as well costs one comparison on that path and keeps the service
+        // correct for any caller, whatever form of the path it holds.
+        String canonical = canonicalize(uri);
+        if (!canonical.equals(uri)) {
+            LOGGER.debug("[{} - {}] resolving on the canonical form [{}]", method, uri, canonical);
         }
-        return header;
+        return resolveHeader(method, canonical, params);
     }
 
     private Optional<String> resolveHeader(String method, String uri, Map<String, String> params) {
@@ -191,7 +184,6 @@ public class ClientCacheServiceImpl implements ClientCacheService {
     }
 
     private static final Pattern DUPLICATE_SEPARATOR = Pattern.compile("/{2,}");
-    private static final Pattern NON_ZERO_S_MAXAGE = Pattern.compile("s-maxage\\s*=\\s*0*[1-9]");
 
     /**
      * Rewrites a request URI to the single form that stands for every spelling of the same path:
@@ -219,15 +211,16 @@ public class ClientCacheServiceImpl implements ClientCacheService {
         }
         StringBuilder decoded = new StringBuilder(uri.length());
         ByteArrayOutputStream pending = new ByteArrayOutputStream();
-        for (int i = 0; i < uri.length(); ) {
+        int i = 0;
+        while (i < uri.length()) {
             if (uri.charAt(i) == '%' && i + 2 < uri.length() && isHex(uri.charAt(i + 1)) && isHex(uri.charAt(i + 2))) {
                 pending.write(Integer.parseInt(uri.substring(i + 1, i + 3), 16));
                 i += 3;
-                continue;
+            } else {
+                flush(pending, decoded);
+                decoded.append(uri.charAt(i));
+                i++;
             }
-            flush(pending, decoded);
-            decoded.append(uri.charAt(i));
-            i++;
         }
         flush(pending, decoded);
         return decoded.toString();
@@ -255,17 +248,14 @@ public class ClientCacheServiceImpl implements ClientCacheService {
         boolean rooted = path.startsWith("/");
         Deque<String> kept = new ArrayDeque<>();
         for (String segment : (rooted ? path.substring(1) : path).split("/", -1)) {
-            if (".".equals(segment)) {
-                continue;
-            }
             if ("..".equals(segment)) {
                 // A rooted path has no parent above its root, so a climb that would leave it is dropped
                 // rather than applied. Leaving it in would make the canonical form name a path the
                 // request could not reach.
                 kept.pollLast();
-                continue;
+            } else if (!".".equals(segment)) {
+                kept.addLast(segment);
             }
-            kept.addLast(segment);
         }
         String rebuilt = (rooted ? "/" : "") + String.join("/", kept);
         // A path whose last segment was a dot segment loses its trailing separator when it is rebuilt.
@@ -275,21 +265,6 @@ public class ClientCacheServiceImpl implements ClientCacheService {
         return rebuilt.isEmpty() ? "/" : rebuilt;
     }
 
-    /**
-     * Whether a Cache-Control value lets a cache shared between users store the response. This is the
-     * property the two candidate policies are compared on, and it reads the header itself rather than
-     * the name of a template, so a rule that carries a literal header value is ranked too.
-     */
-    static boolean allowsSharedCaching(String header) {
-        if (header == null) {
-            return false;
-        }
-        String value = header.toLowerCase(Locale.ROOT);
-        if (value.contains("no-store") || value.contains("private")) {
-            return false;
-        }
-        return value.contains("public") || NON_ZERO_S_MAXAGE.matcher(value).find();
-    }
 
     private Map<String, ClientCacheFilterTemplate> computeCacheControlHeaderTemplates(Config config) {
         Map<String, ClientCacheFilterTemplate> values = new HashMap<>();

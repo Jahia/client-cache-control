@@ -69,7 +69,7 @@ public class ClientCacheFilter extends AbstractServletFilter {
         LOGGER.debug("{} {} Entering Cache Control preset filter", hRequest.getMethod(), hRequest.getRequestURI());
         hRequest.setAttribute(ClientCacheService.CC_ORIGINAL_REQUEST_URI_ATTR, hRequest.getRequestURI());
         boolean defaultPreset = false;
-        Optional<String> presetCacheControlValue = service.getCacheControlHeader(hRequest.getMethod(), hRequest.getRequestURI(), Collections.emptyMap());
+        Optional<String> presetCacheControlValue = service.getCacheControlHeader(hRequest.getMethod(), resolvedPath(hRequest), Collections.emptyMap());
         if (presetCacheControlValue.isPresent()) {
             hResponseWrapper.setHeader(HttpHeaders.CACHE_CONTROL, presetCacheControlValue.get());
             if (service.getMode().equals(ClientCacheMode.STRICT)) {
@@ -99,6 +99,23 @@ public class ClientCacheFilter extends AbstractServletFilter {
         if (LOGGER.isDebugEnabled()) {
             hResponseWrapper.getHeaderNames().forEach(headerName -> LOGGER.debug("[{}]  Final Header: [{}] Value: [{}]", hRequest.getRequestURI(), headerName, hResponseWrapper.getHeader(headerName)));
         }
+    }
+
+    /**
+     * The path the container resolved this request to, which is what the rules are matched against.
+     * {@code getServletPath()} and {@code getPathInfo()} are decoded and normalized by the container, and
+     * together they are the path it used to choose the servlet. Matching them keeps this filter's view of
+     * the request identical to the one that decides which resource answers, so the policy describes the
+     * response that is actually produced.
+     *
+     * <p>Falls back to the request URI where the container exposes neither, so a policy is resolved for
+     * every request.</p>
+     */
+    static String resolvedPath(HttpServletRequest request) {
+        String servletPath = request.getServletPath() != null ? request.getServletPath() : "";
+        String pathInfo = request.getPathInfo() != null ? request.getPathInfo() : "";
+        String resolved = servletPath + pathInfo;
+        return resolved.isEmpty() ? request.getRequestURI() : resolved;
     }
 
     @Override public void init(FilterConfig filterConfig) {
