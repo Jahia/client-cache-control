@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
 
 /**
  * The path the filter hands to the service for rule matching.
@@ -59,37 +58,8 @@ public class ClientCacheFilterTest {
         assertEquals("/modules/healthcheck", ClientCacheFilter.resolvedPath(request("", null, "/modules/x/../healthcheck")));
     }
 
-    @Test
-    public void canonicalizeRewritesEverySpellingToOneForm() {
-        assertEquals("/modules/healthcheck", ClientCacheFilter.canonicalize("/modules/healthchec%6b"));
-        assertEquals("/modules/healthcheck", ClientCacheFilter.canonicalize("/modules//healthcheck"));
-        assertEquals("/modules/healthcheck", ClientCacheFilter.canonicalize("/modules/./healthcheck"));
-        assertEquals("/modules/healthcheck", ClientCacheFilter.canonicalize("/modules/x/../healthcheck"));
-        assertEquals("/modules/tools/index.jsp", ClientCacheFilter.canonicalize("/modules/tool%73//index.jsp"));
-        // Decoding runs before dot segments are removed, which is the order the container applies, so an
-        // encoded dot segment resolves the same way a written one does.
-        assertEquals("/healthcheck", ClientCacheFilter.canonicalize("/modules/%2e%2e/healthcheck"));
-        // A multi-byte character written as several percent groups decodes to the character it stands for.
-        assertEquals("/files/été.pdf", ClientCacheFilter.canonicalize("/files/%C3%A9t%C3%A9.pdf"));
-    }
 
-    @Test
-    public void canonicalizeLeavesAPathThatIsAlreadyCanonicalUntouched() {
-        String uri = "/modules/ckeditor/javascript/ckeditor.js";
-        assertSame(uri, ClientCacheFilter.canonicalize(uri));
-        // A percent sign that is not followed by two hexadecimal digits belongs to the name and is kept as
-        // it stands. An encoded one is decoded, like any other encoded byte.
-        assertEquals("/files/100% done.pdf", ClientCacheFilter.canonicalize("/files/100% done.pdf"));
-        assertEquals("/files/50% off.pdf", ClientCacheFilter.canonicalize("/files/50%25 off.pdf"));
-        // A plus sign is a plus sign in a path, whatever form encoding makes of it.
-        assertSame("/files/a+b.pdf", ClientCacheFilter.canonicalize("/files/a+b.pdf"));
-    }
 
-    @Test
-    public void canonicalizeDoesNotClimbAboveTheRoot() {
-        assertEquals("/etc/passwd", ClientCacheFilter.canonicalize("/../../etc/passwd"));
-        assertEquals("/", ClientCacheFilter.canonicalize("/"));
-    }
 
     /** An {@link HttpServletRequest} that answers only the three methods this reads. */
     private static HttpServletRequest request(String servletPath, String pathInfo, String requestUri) {
