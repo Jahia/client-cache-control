@@ -37,6 +37,14 @@ public interface ClientCacheService {
 
     String getDefaultCacheControlHeader();
 
+    /**
+     * The Cache-Control value the ruleset gives a request, or empty when no rule matches it.
+     *
+     * @param uri the path the request resolves to, decoded and with its separators and dot segments
+     *            normalized. In a servlet container that is {@code getServletPath() + getPathInfo()}.
+     *            A rule pattern matches this path exactly as it is given, so a caller that holds a
+     *            path in another form resolves it first.
+     */
     Optional<String> getCacheControlHeader(String method, String uri, Map<String, String> templateParams);
 
     Optional<String> getCacheControlHeader(String template, Map<String, String> templateParams);
