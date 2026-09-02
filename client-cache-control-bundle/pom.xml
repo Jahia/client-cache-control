@@ -89,7 +89,7 @@
         <dependency>
             <groupId>org.jahia.bundles</groupId>
             <artifactId>org.jahia.bundles.client-cache-control-api</artifactId>
-            <version>9.1.0-SNAPSHOT</version>
+            <version>9.0.2-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
