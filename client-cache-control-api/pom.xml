@@ -13,6 +13,7 @@
 
     <properties>
         <export-package>org.jahia.bundles.filters.cache.client.api</export-package>
+        <sonar.sources>src,pom.xml</sonar.sources>
     </properties>
 
     <dependencies>

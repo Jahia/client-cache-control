@@ -15,6 +15,7 @@
     <properties>
         <import-package>org.jahia.bundles.filters.cache.client.api</import-package>
         <private-package>org.jahia.bundles.filters.cache.client.filter,org.jahia.bundles.filters.cache.client.impl,org.jahia.bundles.filters.cache.client.render</private-package>
+        <sonar.sources>src,pom.xml</sonar.sources>
     </properties>
 
     <build>

@@ -15,6 +15,7 @@
     <properties>
         <import-package>org.jahia.bundles.filters.cache.client.api</import-package>
         <private-package>org.jahia.bundles.filters.cache.client.graphql</private-package>
+        <sonar.sources>src,pom.xml</sonar.sources>
     </properties>
 
     <build>
