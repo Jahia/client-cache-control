@@ -207,7 +207,9 @@ HTTP Request
     ↓
 [Request Processing]
     ├─ Static Servlet Processing (files, assets)
-    │  └─ Header pre-set by filter (may be locked in STRICT mode)
+    │  ├─ Header pre-set by filter (may be locked in STRICT mode)
+    │  └─ Servlet may contribute a stricter ClientCachePolicy (request attribute),
+    │     applied by the wrapper before the response commits
     ├─ RenderChain Processing (page rendering)
     │  ├─ Default "public" policy assigned to RenderContext
     │  ├─ Fragment evaluation with CacheKeyPartGenerator
@@ -216,7 +218,9 @@ HTTP Request
     └─
 [Response Headers Set]
     ├─ Filter pre-set header (may be overridden in ALLOW_OVERRIDES mode)
+    ├─ Or the contributed policy, when it is stricter than the pre-set one
     ├─ Or final header from RenderChain processing
+    ├─ Errors (sendError) and temporary redirects (sendRedirect): private, final
     └─
 [Client/CDN Receives Response]
     └─ Cache-Control header dictates browser and CDN behavior
@@ -255,7 +259,7 @@ When an HTTP request arrives at Jahia:
 **Filter Behavior**:
 - Operates in two modes:
   - **ALLOW_OVERRIDES mode** (default): Components can override the pre-set header
-  - **STRICT mode**: Header is locked; any override attempt logs an error
+  - **STRICT mode**: Header is locked; any override attempt is ignored and logs an error, whatever the letter case of the header name and whatever the setter (`setHeader`, `addHeader`, `setDateHeader`, `setIntHeader`, …)
 - Preserves original request URI for debugging
 
 #### Step 2: Request Processing
@@ -264,8 +268,30 @@ When an HTTP request arrives at Jahia:
 
 For static files, assets, and servlets:
 - The pre-set header from ClientCacheFilter is used
-- In STRICT mode, the header cannot be changed
-- In ALLOW_OVERRIDES mode, servlets can override it if needed
+- A servlet can request a stricter policy for its response (see [Requesting a stricter policy from a servlet](#requesting-a-stricter-policy-from-a-servlet)), in both modes
+- In STRICT mode, the header cannot be written directly
+- In ALLOW_OVERRIDES mode, servlets can write it directly, as they did before this module existed
+
+##### Requesting a stricter policy from a servlet
+
+A servlet that knows its response must be less cacheable than its URL rule does not write the header. It contributes a `ClientCachePolicy` to the request, and the module turns it into a header with its templates:
+
+```java
+ClientCachePolicy.contribute(request, ClientCachePolicy.PRIVATE);
+```
+
+- The request keeps the strictest policy it is given, as the RenderContext does for page fragments.
+- The response wrapper applies the policy at the first point where the response can commit (`getOutputStream`, `getWriter`, `flushBuffer`, `sendError`, `sendRedirect`), or when the filter chain returns, so the servlet contributes before it writes its body.
+- The policy applies only when it is stricter than the policy of the rule that matched. A `template:private` rule keeps every response private, whatever a servlet contributes.
+- A private policy makes the cache headers of the response final: a later write leaves them as they are.
+- In ALLOW_OVERRIDES mode, when the policy replaces a value that a component wrote directly, the filter logs both values at DEBUG level.
+- The policy is held in the request attribute named after the `ClientCachePolicy` class (`ClientCacheService.CC_REQUEST_POLICY_ATTR`). Without this module, nothing reads it.
+
+The Jahia FileServlet contributes a private policy for a file the guest user cannot read, and for its `401`, `403` and `404` responses. Files the guest user can read keep the preset of their rule (`public-medium` by default).
+
+##### Errors and temporary redirects
+
+`sendError` and `sendRedirect` give the response the private template, whatever the rule and the contributed policy, and make its cache headers final. An error or a temporary redirect can depend on who asks, and a shared cache can store a response of any status that carries `public` or `s-maxage`. A permanent redirect (`301`, `308`) set through `setStatus` keeps the preset of its rule.
 
 ##### For Dynamic Content (RenderChain - Page Rendering)
 
@@ -388,6 +414,17 @@ priority;methods;urlRegex;headerSpec
 - **Template reference**: `template:public`, `template:private`, `template:immutable`, etc.
 - **Literal value**: `no-store,no-cache,must-revalidate` (raw Cache-Control header)
 
+**Policy of a rule**: a template also gives the rule its policy level. A request can make a response stricter than this policy, never more permissive (see [Requesting a stricter policy from a servlet](#requesting-a-stricter-policy-from-a-servlet)).
+
+| **Template** | **Policy level** |
+|---|---|
+| `private` | private |
+| `custom` | custom |
+| `public`, `public-medium` | public |
+| `immutable` | immutable |
+
+A literal value names no template, so its policy level is public, whatever the value reads like. To make a rule the most permissive policy a response can get, use `template:private`, not a literal `private, …` value.
+
 ---
 
 #### Custom Module Rules
@@ -484,6 +521,7 @@ The module operates in two modes:
   - ClientCacheFilter pre-sets a header based on rules
   - Other components can override this header during request processing
   - In RenderChain, ClientCacheRenderFilter overrides with the final policy
+  - A policy contributed by a servlet applies when it is stricter than the pre-set one; a private one also replaces a value a component wrote directly
   - Any override is logged at DEBUG level
 
 - **Use Case**: Usage of modules that do not use the latest ruleset and that overrides cache headers directly (NOT RECOMMENDED)
@@ -500,8 +538,10 @@ The module operates in two modes:
 - **Behavior**:
   - ClientCacheFilter pre-sets a header and **locks** the response
   - The header **cannot be modified** by any component
-  - Any attempt to override the header logs an ERROR message
+  - Any attempt to override the header is ignored and logs an ERROR message, whatever the letter case of the header name and whatever the setter
   - ClientCacheRenderFilter uses the special `Force-Cache-Control` header that can bypass this lock (RESERVED FOR RENDERCHAIN FINAL POLICY ONLY)
+  - A policy contributed by a servlet still applies when it is stricter than the pre-set one: it is the way for a servlet to make its response less cacheable without writing the header
+  - A component that needs another value publishes its own ruleset
 
 - **Use Case**: Well-known environments where you want to enforce strict cache policies and prevent any accidental overrides or dublin values
 
@@ -596,6 +636,8 @@ Jahia provides sample modules demonstrating common use cases:
 | **ClientCacheFilter** | Servlet filter that pre-sets headers based on URL rules | `ClientCacheFilter.java` |
 | **ClientCacheResponseWrapper** | Wraps response to control header modifications | `ClientCacheResponseWrapper.java` |
 | **ClientCacheServiceImpl** | Core service managing rules, templates, and configuration | `ClientCacheServiceImpl.java` |
+| **ClientCachePreset** | The Cache-Control value a rule presets, and the policy of its template | `ClientCachePreset.java` |
+| **ClientCachePolicy.contribute** | Jahia core method a servlet calls to request a stricter policy for its response | Jahia core (`render-service`) |
 | **ClientCacheRenderFilter** | RenderChain filter that applies final policy from fragments | `ClientCacheRenderFilter.java` |
 | **CacheKeyPartGenerator** | Jahia plugin detecting personalized fragments | Jahia core (`render-service`) |
 | **ClientCachePolicyContributor** | Jahia core component merging fragment policies | Jahia core (`render-service`) |
@@ -615,9 +657,11 @@ Jahia provides sample modules demonstrating common use cases:
 
 5. **Document custom rules**: Document why you added custom rules so future developers understand the intent.
 
-6. **Use templates, not literals**: Prefer `template:public` over literal headers, so TTL changes apply automatically.
+6. **Use templates, not literals**: Prefer `template:public` over literal headers, so TTL changes apply automatically, and so the rule has a policy level that a servlet can only make stricter.
 
 7. **Use immutable only when appropriate**: Only use the `immutable` template for resources with truly unique URLs.
+
+8. **Contribute a policy, do not write the header**: In a servlet, call `ClientCachePolicy.contribute(request, policy)` rather than setting `Cache-Control`. It works in both modes, and the value stays the one the templates define.
 
 ---
 
