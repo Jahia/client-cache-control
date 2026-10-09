@@ -15,6 +15,8 @@
  */
 package org.jahia.bundles.cache.client.api;
 
+import org.jahia.services.render.filter.cache.ClientCachePolicy;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,7 @@ public interface ClientCacheService {
     String CC_SET_ATTR = "jahiaCacheControlSet";
     String CC_ORIGINAL_REQUEST_URI_ATTR = "jahiaOriginalRequestURI";
     String CC_CUSTOM_TTL_ATTR = "jahiaClientCacheCustomTTL";
+    String CC_REQUEST_POLICY_ATTR = ClientCachePolicy.class.getName();
 
     ClientCacheMode getMode();
 
@@ -36,6 +39,8 @@ public interface ClientCacheService {
     Collection<ClientCacheTemplate> listHeaderTemplates();
 
     String getDefaultCacheControlHeader();
+
+    ClientCachePreset getDefaultPreset();
 
     /**
      * The Cache-Control value the ruleset gives a request, or empty when no rule matches it.
@@ -48,4 +53,14 @@ public interface ClientCacheService {
     Optional<String> getCacheControlHeader(String method, String uri, Map<String, String> templateParams);
 
     Optional<String> getCacheControlHeader(String template, Map<String, String> templateParams);
+
+    /**
+     * The preset the ruleset gives a request, or empty when no rule matches it: its Cache-Control value, as
+     * {@link #getCacheControlHeader(String, String, Map)} returns it, and the policy of the template the rule
+     * names.
+     *
+     * @param uri the path the request resolves to, as {@link #getCacheControlHeader(String, String, Map)} takes it
+     */
+    Optional<ClientCachePreset> getPreset(String method, String uri, Map<String, String> templateParams);
+
 }
