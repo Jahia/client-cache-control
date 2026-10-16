@@ -16,9 +16,11 @@
 package org.jahia.bundles.cache.client.impl;
 
 import org.jahia.bundles.cache.client.api.ClientCacheMode;
+import org.jahia.bundles.cache.client.api.ClientCachePreset;
 import org.jahia.bundles.cache.client.api.ClientCacheRule;
 import org.jahia.bundles.cache.client.api.ClientCacheService;
 import org.jahia.bundles.cache.client.api.ClientCacheTemplate;
+import org.jahia.services.render.filter.cache.ClientCachePolicy;
 import org.osgi.service.component.annotations.*;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
@@ -134,17 +136,22 @@ public class ClientCacheServiceImpl implements ClientCacheService {
     }
 
     @Override public Optional<String> getCacheControlHeader(String method, String uri, Map<String, String> params) {
+        return getPreset(method, uri, params).map(ClientCachePreset::getCacheControl);
+    }
+
+    @Override public Optional<ClientCachePreset> getPreset(String method, String uri, Map<String, String> params) {
         Optional<ClientCacheFilterRule> mRule = listFilterRules().stream()
                 .filter(rule -> rule.getMethods().contains(method) && rule.getUrlPattern().matcher(uri).matches()).findFirst();
         if (mRule.isPresent()) {
             if (mRule.get().getHeaderValue() != null) {
                 LOGGER.debug("[{} - {}] matched with rule {}, returning header: {}", method, uri, mRule.get(), mRule.get().getHeaderValue());
-                return Optional.of(mRule.get().getHeaderValue());
+                return Optional.of(new ClientCachePreset(mRule.get().getHeaderValue(), ClientCachePolicy.DEFAULT));
             }
             if (mRule.get().getHeaderTemplate() != null) {
-                String headerValue = cacheControlHeaderTemplates.getOrDefault(mRule.get().getHeaderTemplate(), ClientCacheFilterTemplate.EMPTY).getFilteredTemplate(params);
+                ClientCacheFilterTemplate template = cacheControlHeaderTemplates.getOrDefault(mRule.get().getHeaderTemplate(), ClientCacheFilterTemplate.EMPTY);
+                String headerValue = template.getFilteredTemplate(params);
                 LOGGER.debug("[{} - {}] matched with rule {}, returning header: {}", uri, method, mRule.get(), headerValue);
-                return Optional.of(headerValue);
+                return Optional.of(new ClientCachePreset(headerValue, template.getPolicy()));
             }
         }
         return Optional.empty();
@@ -164,18 +171,28 @@ public class ClientCacheServiceImpl implements ClientCacheService {
         return cacheControlHeaderTemplates.get(ClientCacheFilterTemplate.DEFAULT).getTemplate();
     }
 
+    @Override public ClientCachePreset getDefaultPreset() {
+        ClientCacheFilterTemplate template = cacheControlHeaderTemplates.get(ClientCacheFilterTemplate.DEFAULT);
+        return new ClientCachePreset(template.getTemplate(), template.getPolicy());
+    }
+
     private Map<String, ClientCacheFilterTemplate> computeCacheControlHeaderTemplates(Config config) {
         Map<String, ClientCacheFilterTemplate> values = new HashMap<>();
         values.put(ClientCacheFilterTemplate.PRIVATE,
-                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PRIVATE, configureCacheControlHeaderTemplate(config.cache_header_template_private(), config)));
+                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PRIVATE, configureCacheControlHeaderTemplate(config.cache_header_template_private(), config),
+                        ClientCachePolicy.PRIVATE));
         values.put(ClientCacheFilterTemplate.PUBLIC_MEDIUM,
-                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PUBLIC_MEDIUM, configureCacheControlHeaderTemplate(config.cache_header_template_public_medium(), config)));
+                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PUBLIC_MEDIUM, configureCacheControlHeaderTemplate(config.cache_header_template_public_medium(), config),
+                        ClientCachePolicy.PUBLIC));
         values.put(ClientCacheFilterTemplate.PUBLIC,
-                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PUBLIC, configureCacheControlHeaderTemplate(config.cache_header_template_public(), config)));
+                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.PUBLIC, configureCacheControlHeaderTemplate(config.cache_header_template_public(), config),
+                        ClientCachePolicy.PUBLIC));
         values.put(ClientCacheFilterTemplate.CUSTOM,
-                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.CUSTOM, configureCacheControlHeaderTemplate(config.cache_header_template_custom(), config)));
+                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.CUSTOM, configureCacheControlHeaderTemplate(config.cache_header_template_custom(), config),
+                        new ClientCachePolicy(ClientCachePolicy.Level.CUSTOM)));
         values.put(ClientCacheFilterTemplate.IMMUTABLE,
-                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.IMMUTABLE, configureCacheControlHeaderTemplate(config.cache_header_template_immutable(), config)));
+                new ClientCacheFilterTemplate(ClientCacheFilterTemplate.IMMUTABLE, configureCacheControlHeaderTemplate(config.cache_header_template_immutable(), config),
+                        new ClientCachePolicy(ClientCachePolicy.Level.IMMUTABLE)));
         return values;
     }
 

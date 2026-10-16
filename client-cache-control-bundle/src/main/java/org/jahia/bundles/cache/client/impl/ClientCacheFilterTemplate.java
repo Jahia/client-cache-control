@@ -16,6 +16,7 @@
 package org.jahia.bundles.cache.client.impl;
 
 import org.jahia.bundles.cache.client.api.ClientCacheTemplate;
+import org.jahia.services.render.filter.cache.ClientCachePolicy;
 
 import java.util.Map;
 
@@ -31,14 +32,16 @@ public class ClientCacheFilterTemplate extends ClientCacheTemplate {
     public static final String IMMUTABLE = "immutable";
     public static final String DEFAULT = IMMUTABLE;
 
-    public static final ClientCacheFilterTemplate EMPTY = new ClientCacheFilterTemplate("empty", "");
+    public static final ClientCacheFilterTemplate EMPTY = new ClientCacheFilterTemplate("empty", "", ClientCachePolicy.DEFAULT);
 
     private final String name;
     private final String template;
+    private final ClientCachePolicy policy;
 
-    public ClientCacheFilterTemplate(String name, String template) {
+    public ClientCacheFilterTemplate(String name, String template, ClientCachePolicy policy) {
         this.name = name;
         this.template = template;
+        this.policy = policy;
     }
 
     @Override public String getName() {
@@ -47,6 +50,11 @@ public class ClientCacheFilterTemplate extends ClientCacheTemplate {
 
     @Override public String getTemplate() {
         return template;
+    }
+
+    /** The policy a response gets when this template sets its Cache-Control. */
+    public ClientCachePolicy getPolicy() {
+        return policy;
     }
 
     @Override public String toString() {

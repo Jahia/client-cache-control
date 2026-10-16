@@ -19,5 +19,6 @@ A dedicated module centralizes browser cache rules according to Jahia content UR
 The client caching strategy is preset by a filter according to matching rule. 
 Custom rules can be included to customize caching behavior for specific module content URLs. 
 Using the filter's 'strict' mode ensures that other code (modules) cannot update defined header values.
+A servlet can still request a stricter policy for its own response, without writing the header: the module applies it with its templates.
 
 More information can be found in the [Browser Caching Control](/documentation/jahia-cms/jahia-8-2/developer/rendering-pages-and-content/browser-client-caching-control).

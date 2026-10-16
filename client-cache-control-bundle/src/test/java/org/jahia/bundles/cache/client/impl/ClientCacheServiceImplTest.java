@@ -15,6 +15,8 @@
  */
 package org.jahia.bundles.cache.client.impl;
 
+import org.jahia.bundles.cache.client.api.ClientCachePreset;
+import org.jahia.services.render.filter.cache.ClientCachePolicy;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -51,6 +53,7 @@ public class ClientCacheServiceImplTest {
         String[] rules = {
                 "1;GET|HEAD;(?:/[^/]+)?/cms/render/live/.*;template:public",
                 "2;GET|HEAD;(?:/[^/]+)?/cms/.*;template:private",
+                "6;GET|HEAD;(?:/[^/]+)?/literal/.*;private, max-age=0",
                 "7;GET|HEAD;(?:/[^/]+)?/files/.*;template:public-medium",
                 "8.1;GET|HEAD;(?:/[^/]+)?/modules/tools(/.*)?;template:private",
                 "8.2;GET|HEAD;(?:/[^/]+)?/modules/healthcheck(/.*)?;template:private",
@@ -99,6 +102,35 @@ public class ClientCacheServiceImplTest {
 
 
 
+
+    @Test
+    public void aPresetCarriesThePolicyOfTheTemplateItsRuleNames() {
+        assertEquals(new ClientCachePreset(PUBLIC_MEDIUM, ClientCachePolicy.PUBLIC),
+                service.getPreset("GET", "/files/live/sites/mysite/files/doc.pdf", Collections.emptyMap()).orElse(null));
+        assertEquals(new ClientCachePreset(PRIVATE, ClientCachePolicy.PRIVATE),
+                service.getPreset("GET", "/cms/edit/default/en/sites/mysite.html", Collections.emptyMap()).orElse(null));
+        assertEquals(new ClientCachePreset(PUBLIC, ClientCachePolicy.PUBLIC),
+                service.getPreset("GET", "/sites/mysite/home.html", Collections.emptyMap()).orElse(null));
+    }
+
+    @Test
+    public void aPresetStatedAsALiteralValueHasTheDefaultPolicy() {
+        // Only a template declares a policy, whatever the literal value reads like.
+        assertEquals(new ClientCachePreset("private, max-age=0", ClientCachePolicy.DEFAULT),
+                service.getPreset("GET", "/literal/page", Collections.emptyMap()).orElse(null));
+    }
+
+    @Test
+    public void theDefaultPresetHasThePolicyOfTheDefaultTemplate() {
+        ClientCachePreset preset = service.getDefaultPreset();
+        assertEquals(service.getDefaultCacheControlHeader(), preset.getCacheControl());
+        assertEquals(new ClientCachePolicy(ClientCachePolicy.Level.IMMUTABLE), preset.getPolicy());
+    }
+
+    @Test
+    public void noPresetWhenNoRuleMatches() {
+        assertEquals(Optional.empty(), service.getPreset("PUT", "/files/live/doc.pdf", Collections.emptyMap()));
+    }
 
     /** The service configuration with every value left at the default the component declares. */
     private static ClientCacheServiceImpl.Config defaultConfig() {
