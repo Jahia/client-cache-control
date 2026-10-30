@@ -1,5 +1,5 @@
 ---
-client-cache-control: patch
+client-cache-control: minor
 ---
 
 Changed cache headers so content can make a response less cacheable than its URL rule, and never more cacheable.
