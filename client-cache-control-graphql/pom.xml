@@ -75,6 +75,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>org.jahia.server</groupId>
+            <artifactId>jahia-impl</artifactId>
+            <version>${jahia.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.jahia.modules</groupId>
             <artifactId>graphql-dxm-provider</artifactId>
             <version>${graphql-dxm-provider.version}</version>

@@ -29,6 +29,6 @@ public class GqlClientCacheExtensionProvider  implements DXGraphQLExtensionsProv
 
     @Override
     public Collection<Class<?>> getExtensions() {
-        return Arrays.<Class<?>>asList(JahiaAdminQueryExtension.class);
+        return Arrays.<Class<?>>asList(JahiaAdminQueryExtension.class, JcrNodeClientCacheExtension.class);
     }
 }

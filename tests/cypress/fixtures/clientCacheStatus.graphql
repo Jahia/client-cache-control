@@ -1,0 +1,22 @@
+query ($path: String!, $language: String!) {
+    jcr {
+        nodeByPath(path: $path) {
+            clientCacheStatus(language: $language) {
+                published
+                policy
+                ttl
+                header
+                fragments {
+                    path
+                    view
+                    module
+                    policy
+                    ttl
+                    reason
+                    keyParts
+                    fromCache
+                }
+            }
+        }
+    }
+}
